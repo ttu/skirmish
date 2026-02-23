@@ -37,6 +37,7 @@ import { formatQueuedCommands, renderCommandList } from "../ui/CommandFormatters
 import { renderBodyDiagram, renderEnemyBodyDiagram } from "../ui/BodyDiagramUI";
 import { SkillsComponent } from "../engine/components";
 import { DiceRollSidebar } from "../ui/DiceRollSidebar";
+import { makeDraggable } from "../utils/makeDraggable";
 
 export class TurnBasedGame {
   private renderer: THREE.WebGLRenderer;
@@ -473,6 +474,7 @@ export class TurnBasedGame {
     `;
     // All styling now handled by CSS classes in index.html
     document.getElementById("game-container")!.appendChild(infoBox);
+    makeDraggable(infoBox, infoBox.querySelector(".selection-info-title") as HTMLElement);
 
     // Enemy unit info box (bottom-right) — separate area when clicking enemy
     const enemyInfoBox = document.createElement("div");
@@ -484,6 +486,7 @@ export class TurnBasedGame {
     `;
     // All styling now handled by CSS classes in index.html
     document.getElementById("game-container")!.appendChild(enemyInfoBox);
+    makeDraggable(enemyInfoBox, enemyInfoBox.querySelector(".enemy-info-title") as HTMLElement);
 
     // Wire up event listeners
     document.getElementById("tb-resolve")!.addEventListener("click", () => {

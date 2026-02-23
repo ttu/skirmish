@@ -1,5 +1,6 @@
 import { EntityId, GameEvent } from '../engine/types';
 import { Modifier } from '../engine/systems/CombatResolver';
+import { makeDraggable } from '../utils/makeDraggable';
 
 const LOCATION_ZONES: { key: string; label: string; widthPct: number }[] = [
   { key: 'head',   label: 'Head',  widthPct: 15 },
@@ -44,6 +45,8 @@ export class DiceRollSidebar {
     this.showEmpty();
 
     this.container.addEventListener('click', () => this.skipAnimation());
+
+    makeDraggable(this.container, title);
   }
 
   getElement(): HTMLElement {

@@ -1,5 +1,6 @@
 import { GameEvent } from "../engine/types";
 import { EntityId } from "../engine/types";
+import { makeDraggable } from "../utils/makeDraggable";
 
 export class CombatLogUI {
   private container: HTMLElement;
@@ -17,6 +18,9 @@ export class CombatLogUI {
     `;
     // All styling now handled by CSS classes in index.html
     this.logEl = this.container.querySelector(".combat-log-entries")!;
+
+    const titleEl = this.container.querySelector(".combat-log-title") as HTMLElement;
+    makeDraggable(this.container, titleEl);
 
     if (getEntityName) {
       this.getEntityName = getEntityName;
