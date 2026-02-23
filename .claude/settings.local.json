@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:brainstorming:*)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:writing-plans:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx vite build:*)"
+    ]
+  }
+}
