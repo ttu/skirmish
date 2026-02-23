@@ -13,6 +13,11 @@ export class DiceRollSidebar {
   private container: HTMLElement;
   private contentEl: HTMLElement;
   private resolveEntityName: (id: EntityId) => string = (id) => String(id);
+  private resolveFaction: (id: EntityId) => 'player' | 'enemy' = () => 'enemy';
+  /** When set, used for the next AttackDeclared header instead of resolveFaction (avoids closure/world timing issues). */
+  private nextExchangeFactions: { attacker: 'player' | 'enemy'; defender: 'player' | 'enemy' } | null = null;
+  /** Factions for the current exchange; used for header and for attack/defense bar colors. */
+  private currentExchangeFactions: { attacker: 'player' | 'enemy'; defender: 'player' | 'enemy' } | null = null;
   private animationTimeouts: number[] = [];
   private _currentAttackerId: EntityId | null = null;
   private _currentDefenderId: EntityId | null = null;
@@ -33,6 +38,7 @@ export class DiceRollSidebar {
     this.container.appendChild(title);
 
     this.contentEl = document.createElement('div');
+    this.contentEl.className = 'dice-sidebar-content';
     this.container.appendChild(this.contentEl);
 
     this.showEmpty();
@@ -54,6 +60,15 @@ export class DiceRollSidebar {
 
   setEntityNameResolver(resolver: (id: EntityId) => string): void {
     this.resolveEntityName = resolver;
+  }
+
+  setFactionResolver(resolver: (id: EntityId) => 'player' | 'enemy'): void {
+    this.resolveFaction = resolver;
+  }
+
+  /** Use these factions for the next AttackDeclared header (player = blue, enemy = red). Call before handleEvent(AttackDeclared). */
+  setFactionsForNextExchange(attacker: 'player' | 'enemy', defender: 'player' | 'enemy'): void {
+    this.nextExchangeFactions = { attacker, defender };
   }
 
   handleEvent(event: GameEvent): void {
@@ -80,34 +95,48 @@ export class DiceRollSidebar {
 
     const attackerName = event.entityId ? this.resolveEntityName(event.entityId) : '?';
     const defenderName = event.targetId ? this.resolveEntityName(event.targetId) : '?';
+    let attackerFaction: 'player' | 'enemy';
+    let defenderFaction: 'player' | 'enemy';
+    if (this.nextExchangeFactions) {
+      attackerFaction = this.nextExchangeFactions.attacker;
+      defenderFaction = this.nextExchangeFactions.defender;
+      this.nextExchangeFactions = null;
+    } else {
+      attackerFaction = event.entityId ? this.resolveFaction(event.entityId) : 'enemy';
+      defenderFaction = event.targetId ? this.resolveFaction(event.targetId) : 'enemy';
+    }
+    this.currentExchangeFactions = { attacker: attackerFaction, defender: defenderFaction };
 
     // Clear empty state on first exchange
     if (this.exchangeCount === 0) {
       this.contentEl.innerHTML = '';
     }
 
-    // Add separator between exchanges
+    // Add separator at the beginning of the list (before existing content)
     if (this.exchangeCount > 0) {
       const sep = document.createElement('div');
       sep.className = 'dice-exchange-separator';
-      this.contentEl.appendChild(sep);
+      this.contentEl.insertBefore(sep, this.contentEl.firstChild);
     }
 
-    // Create a new exchange group
+    // Create a new exchange group (player = blue, enemy = red regardless of attacker/defender)
     const exchange = document.createElement('div');
     exchange.className = 'dice-exchange-group';
 
     const header = document.createElement('div');
     header.className = 'dice-sidebar-header';
-    header.innerHTML = `<span class="attacker">${attackerName}</span> <span class="arrow">\u2192</span> <span class="defender">${defenderName}</span>`;
+    const attackerClass = attackerFaction === 'player' ? 'player-unit' : 'enemy-unit';
+    const defenderClass = defenderFaction === 'player' ? 'player-unit' : 'enemy-unit';
+    const attackerColor = attackerFaction === 'player' ? '#4fc3f7' : '#e85a5a';
+    const defenderColor = defenderFaction === 'player' ? '#4fc3f7' : '#e85a5a';
+    header.innerHTML = `<span class="${attackerClass}" style="color:${attackerColor} !important">${attackerName}</span> <span class="arrow">\u2192</span> <span class="${defenderClass}" style="color:${defenderColor} !important">${defenderName}</span>`;
     exchange.appendChild(header);
 
-    this.contentEl.appendChild(exchange);
+    this.contentEl.insertBefore(exchange, this.contentEl.firstChild);
     this.currentExchangeEl = exchange;
     this.exchangeCount++;
 
-    // Auto-scroll to latest exchange
-    this.contentEl.scrollTop = this.contentEl.scrollHeight;
+    this.contentEl.scrollTop = 0;
   }
 
   private onAttackRolled(event: GameEvent): void {
@@ -121,6 +150,7 @@ export class DiceRollSidebar {
     };
 
     const typeLabel = attackType === 'ranged' ? 'Ranged' : 'Melee';
+    const attackBarType = this.currentExchangeFactions?.attacker ?? 'enemy';
     const section = this.createRollSection(
       'attack',
       `Attack — ${typeLabel} (${effectiveSkill}%)`,
@@ -130,7 +160,7 @@ export class DiceRollSidebar {
       baseSkill ?? effectiveSkill,
       hit,
       hit ? 'HIT' : 'MISS',
-      'player',
+      attackBarType,
     );
     this.appendToCurrentExchange(section);
     this.animateSection(section);
@@ -151,6 +181,7 @@ export class DiceRollSidebar {
       ? (defenseType === 'block' ? 'BLOCKED' : defenseType === 'parry' ? 'PARRIED' : 'DODGED')
       : 'FAIL';
 
+    const defenseBarType = this.currentExchangeFactions?.defender ?? 'enemy';
     const section = this.createRollSection(
       'defense',
       `Defense — ${typeLabel} (${effectiveSkill}%)`,
@@ -160,7 +191,7 @@ export class DiceRollSidebar {
       baseSkill ?? effectiveSkill,
       success,
       resultLabel,
-      'enemy',
+      defenseBarType,
     );
     this.appendToCurrentExchange(section);
     this.animateSection(section);
@@ -283,8 +314,7 @@ export class DiceRollSidebar {
   private appendToCurrentExchange(el: HTMLElement): void {
     const target = this.currentExchangeEl ?? this.contentEl;
     target.appendChild(el);
-    // Auto-scroll to bottom
-    this.contentEl.scrollTop = this.contentEl.scrollHeight;
+    this.contentEl.scrollTop = 0;
   }
 
   private animateSection(section: HTMLElement): void {
@@ -319,6 +349,8 @@ export class DiceRollSidebar {
     this._currentAttackerId = null;
     this._currentDefenderId = null;
     this.currentExchangeEl = null;
+    this.currentExchangeFactions = null;
+    this.nextExchangeFactions = null;
     this.exchangeCount = 0;
     this.showEmpty();
   }

@@ -50,6 +50,48 @@ describe('DiceRollSidebar', () => {
       expect(el.textContent).toContain('Goblin');
     });
 
+    it('colors header by faction: player blue, enemy red (not by attacker/defender)', () => {
+      sidebar.setEntityNameResolver((id) => (id === 'player' ? 'Knight' : 'Orc'));
+      sidebar.setFactionResolver((id) => (id === 'player' ? 'player' : 'enemy'));
+      // Enemy attacks player: Orc (enemy) -> Knight (player)
+      sidebar.handleEvent({
+        type: 'AttackDeclared',
+        turn: 0,
+        timestamp: 0,
+        entityId: 'enemy',
+        targetId: 'player',
+        data: {},
+      });
+      const header = sidebar.getElement().querySelector('.dice-sidebar-header');
+      expect(header).toBeTruthy();
+      const spans = header!.querySelectorAll('span[class]');
+      expect(spans.length).toBeGreaterThanOrEqual(3); // attacker, arrow, defender
+      const attackerSpan = spans[0];
+      const defenderSpan = spans[2];
+      expect(attackerSpan.classList.contains('enemy-unit')).toBe(true);
+      expect(attackerSpan.classList.contains('player-unit')).toBe(false);
+      expect(defenderSpan.classList.contains('player-unit')).toBe(true);
+      expect(defenderSpan.classList.contains('enemy-unit')).toBe(false);
+    });
+
+    it('uses setFactionsForNextExchange when set (game-driven factions)', () => {
+      sidebar.setEntityNameResolver((id) => (id === 'e1' ? 'Orc' : 'Knight'));
+      // Game passes factions explicitly: enemy attacks player
+      sidebar.setFactionsForNextExchange('enemy', 'player');
+      sidebar.handleEvent({
+        type: 'AttackDeclared',
+        turn: 0,
+        timestamp: 0,
+        entityId: 'e1',
+        targetId: 'p1',
+        data: {},
+      });
+      const header = sidebar.getElement().querySelector('.dice-sidebar-header');
+      const spans = header!.querySelectorAll('span[class]');
+      expect(spans[0].classList.contains('enemy-unit')).toBe(true);
+      expect(spans[2].classList.contains('player-unit')).toBe(true);
+    });
+
     it('shows attack bar on AttackRolled', () => {
       sidebar.setEntityNameResolver((id) => id === 'u1' ? 'Warrior' : 'Goblin');
       sidebar.handleEvent({

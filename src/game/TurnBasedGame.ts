@@ -90,7 +90,7 @@ export class TurnBasedGame {
   /** Player unit IDs for the quick-select bar. */
   private playerUnitIds: EntityId[] = [];
   /** Delay between combat event groups (ms). */
-  private readonly COMBAT_EVENT_DELAY = 600;
+  private readonly COMBAT_EVENT_DELAY = 950;
   private screenState: ScreenStateManager;
   private toastManager: ToastManager;
   constructor() {
@@ -141,6 +141,11 @@ export class TurnBasedGame {
       if (!identity) return String(id);
       const typeName = identity.unitType.charAt(0).toUpperCase() + identity.unitType.slice(1);
       return identity.shortId != null ? `${typeName} #${identity.shortId}` : identity.name;
+    });
+    this.diceRollSidebar.setFactionResolver((id) => {
+      const world = this.engine.getWorld();
+      const faction = world.getComponent<FactionComponent>(id, 'faction');
+      return faction?.faction ?? 'enemy';
     });
     document.getElementById('game-container')!.appendChild(this.diceRollSidebar.getElement());
 
@@ -2619,29 +2624,27 @@ export class TurnBasedGame {
       fightSequences.push(currentSequence);
     }
 
-    // Play each fight sequence with a delay between them
+    // Play each fight sequence with a delay (index 0 = oldest; sidebar inserts at beginning so newest ends up on top)
     for (let i = 0; i < fightSequences.length; i++) {
       const sequence = fightSequences[i];
-
-      // Highlight the acting unit for this sequence
       const declaredEvent = sequence.find(e => e.type === "AttackDeclared");
       if (declaredEvent?.entityId) {
         this.showActiveHighlight(declaredEvent.entityId);
       }
-
-      // Feed events to dice roll sidebar
+      if (declaredEvent?.type === "AttackDeclared" && declaredEvent.entityId != null && declaredEvent.targetId != null) {
+        const world = this.engine.getWorld();
+        const attackerFaction = world.getComponent<FactionComponent>(declaredEvent.entityId, "faction")?.faction ?? "enemy";
+        const defenderFaction = world.getComponent<FactionComponent>(declaredEvent.targetId, "faction")?.faction ?? "enemy";
+        this.diceRollSidebar.setFactionsForNextExchange(attackerFaction, defenderFaction);
+      }
       for (const event of sequence) {
         this.diceRollSidebar.handleEvent(event);
       }
-
-      // Show all events in this sequence (they happen "at once" for one attack)
       for (const event of sequence) {
         if (event.type !== "AttackDeclared") {
           this.floatingText.handleEvent(event);
         }
       }
-
-      // Wait between fight sequences (and after the last one so its highlight is visible)
       await this.delay(this.COMBAT_EVENT_DELAY);
     }
 
