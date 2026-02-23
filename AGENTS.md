@@ -89,6 +89,15 @@ tests/
 - **Naming**: PascalCase for classes, camelCase for functions/variables
 - **Testing**: Vitest; tests mirror `src/` structure under `tests/`
 
+## Commit Conventions
+
+- **Format**: `type: description` + optional bullet details + `Refs: #issue`
+- **Types**: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `chore`, `ci`, `build`, `perf`
+- **No scopes**: Use `feat:` not `feat(scope):`
+- **Implementation steps**: Use types (`chore` setup, `feat` feature, etc.) not "Step X:"
+- **No Co-Authored-By/Generated-with** in commit messages
+- **Never commit with `--no-verify`** — run pre-commit hooks (format, type-check, lint, test, build) and fix failures instead of skipping
+
 ## Key Systems
 
 | System           | Location                         | Purpose                                        |
@@ -125,3 +134,4 @@ tests/
 4. **Use EventBus** for cross-system communication
 5. **Unit definitions** live in `engine/data/UnitTemplates.ts`; scenarios in `data/scenarios.ts`
 6. **Run tests** - Use `npm run test:run` to verify changes
+7. **Always build and test after implementation** - Run `npm run build` and `npm run test:run` (or equivalent) before considering work complete
