@@ -99,7 +99,7 @@ export class Obstacle {
         break;
       case "river":
         this.createRiver(scale);
-        this.collisionRadius = 1.5 * scale;
+        this.collisionRadius = (this.length / 2) * scale;
         this.isPassable = false;
         break;
       case "brook":
@@ -114,7 +114,7 @@ export class Obstacle {
         break;
       case "fence":
         this.createFence(scale);
-        this.collisionRadius = 0.4 * scale;
+        this.collisionRadius = (this.length / 2) * scale;
         this.isPassable = false;
         break;
       default:
@@ -382,7 +382,7 @@ export class Obstacle {
 
   private createRiver(scale: number): void {
     const s = scale;
-    const halfLen = 4 * s;
+    const halfLen = (this.length / 2) * s;
     const halfW = 1.5 * s;
     const curve = 1.2 * s;
 
@@ -593,38 +593,53 @@ export class Obstacle {
 
   private createFence(scale: number): void {
     const s = scale;
+    const fenceLength = this.length * s;
     const woodMaterial = createPrintedMaterial({ color: 0x8b6914 });
+    const darkWoodMaterial = createPrintedMaterial({ color: 0x6b4a0a });
     const postHeight = 0.8 * s;
     const postWidth = 0.12 * s;
     const railHeight = 0.08 * s;
-    const railLength = 1.2 * s;
+    const sectionLength = 1.2 * s;
+
+    // Generate fence posts and rails along the full length
+    const postCount = Math.max(2, Math.ceil(fenceLength / sectionLength) + 1);
+    const actualSpacing = fenceLength / (postCount - 1);
+
+    // Position-based seed for consistent randomness
+    const seed = Math.abs(Math.round(this.position.x * 1000 + this.position.z * 31)) || 1;
+    let rng = seed;
+    const random = () => {
+      rng = (rng * 16807 + 0) % 2147483647;
+      return (rng & 0x7fffffff) / 0x7fffffff;
+    };
 
     const postGeometry = new THREE.BoxGeometry(postWidth, postHeight, postWidth);
-    const leftPost = new THREE.Mesh(postGeometry, woodMaterial);
-    leftPost.position.set(-railLength / 2, postHeight / 2, 0);
-    leftPost.castShadow = true;
-    this.mesh.add(leftPost);
+    for (let i = 0; i < postCount; i++) {
+      const x = -fenceLength / 2 + i * actualSpacing;
+      const heightVariation = 1 + (random() - 0.5) * 0.15;
+      const post = new THREE.Mesh(postGeometry, i % 3 === 0 ? darkWoodMaterial : woodMaterial);
+      post.position.set(x, (postHeight * heightVariation) / 2, 0);
+      post.scale.y = heightVariation;
+      post.castShadow = true;
+      this.mesh.add(post);
+    }
 
-    const rightPost = new THREE.Mesh(postGeometry, woodMaterial);
-    rightPost.position.set(railLength / 2, postHeight / 2, 0);
-    rightPost.castShadow = true;
-    this.mesh.add(rightPost);
+    // Rails connecting posts
+    for (let i = 0; i < postCount - 1; i++) {
+      const x0 = -fenceLength / 2 + i * actualSpacing;
+      const midX = x0 + actualSpacing / 2;
+      const railGeometry = new THREE.BoxGeometry(actualSpacing, railHeight, postWidth * 0.8);
 
-    const railGeometry = new THREE.BoxGeometry(railLength, railHeight, postWidth * 0.8);
-    const topRail = new THREE.Mesh(railGeometry, woodMaterial);
-    topRail.position.set(0, postHeight - railHeight, 0);
-    topRail.castShadow = true;
-    this.mesh.add(topRail);
+      const topRail = new THREE.Mesh(railGeometry, woodMaterial);
+      topRail.position.set(midX, postHeight - railHeight, 0);
+      topRail.castShadow = true;
+      this.mesh.add(topRail);
 
-    const midRail = new THREE.Mesh(railGeometry, woodMaterial);
-    midRail.position.set(0, postHeight * 0.5, 0);
-    midRail.castShadow = true;
-    this.mesh.add(midRail);
-
-    const bottomRail = new THREE.Mesh(railGeometry, woodMaterial);
-    bottomRail.position.set(0, railHeight, 0);
-    bottomRail.castShadow = true;
-    this.mesh.add(bottomRail);
+      const midRail = new THREE.Mesh(railGeometry, woodMaterial);
+      midRail.position.set(midX, postHeight * 0.5, 0);
+      midRail.castShadow = true;
+      this.mesh.add(midRail);
+    }
   }
 
   // ── Update ─────────────────────────────────────────────────────
@@ -648,8 +663,8 @@ export class Obstacle {
 
     // River — curved, use expanded AABB
     if (this.type === "river") {
-      const halfWidth = 2.8;
-      const halfLength = 4.2;
+      const halfWidth = 2.8 * this.obstacleScale;
+      const halfLength = (this.length / 2 + 0.2) * this.obstacleScale;
       const cos = Math.cos(this.mesh.rotation.y);
       const sin = Math.sin(this.mesh.rotation.y);
       const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
@@ -657,6 +672,21 @@ export class Obstacle {
       return (
         Math.abs(localX) < halfWidth + radius &&
         Math.abs(localZ) < halfLength + radius
+      );
+    }
+
+    // Fence — rectangular AABB (same logic as stone wall)
+    if (this.type === "fence") {
+      const s = this.obstacleScale;
+      const halfLength = (this.length * s) / 2;
+      const halfWidth = 0.3 * s;
+      const cos = Math.cos(this.mesh.rotation.y);
+      const sin = Math.sin(this.mesh.rotation.y);
+      const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
+      const localZ = -sin * (x - this.position.x) + cos * (z - this.position.z);
+      return (
+        Math.abs(localX) < halfLength + radius &&
+        Math.abs(localZ) < halfWidth + radius
       );
     }
 

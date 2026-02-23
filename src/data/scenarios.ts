@@ -19,9 +19,8 @@ export const scenarios: Scenario[] = [
       { type: "tree_pine", position: { x: 2, z: -3 } },
       { type: "rock", position: { x: 0, z: 2 }, scale: 0.9 },
       { type: "rock", position: { x: -1, z: -4 } },
-      { type: "fence", position: { x: -8, z: -6 }, rotation: 0.5 },
-      { type: "fence", position: { x: 8, z: 6 }, rotation: -0.3 },
-      { type: "brook", position: { x: 6, z: -6 }, rotation: 0.8, length: 5 },
+      // Brook crossing from north edge to south edge
+      { type: "brook", position: { x: 5, z: 0 }, rotation: 0.3, length: 21 },
     ],
     objectives: ["Defeat all enemies"],
   },
@@ -41,8 +40,6 @@ export const scenarios: Scenario[] = [
       { type: "rock", position: { x: 1, z: -2 } },
       { type: "tree_pine", position: { x: -6, z: 5 } },
       { type: "tree_pine", position: { x: 6, z: -4 } },
-      { type: "fence", position: { x: -3, z: -6 }, rotation: 0 },
-      { type: "fence", position: { x: 3, z: 6 }, rotation: Math.PI / 2 },
       { type: "stone_wall", position: { x: 0, z: 0 }, rotation: 0.3, length: 3 },
     ],
     objectives: ["Defeat the orc warrior"],
@@ -67,16 +64,16 @@ export const scenarios: Scenario[] = [
     obstacles: [
       { type: "rock", position: { x: 0, z: 6 } },
       { type: "rock", position: { x: 0, z: -6 } },
-      { type: "rock", position: { x: 4, z: 2 } },
+      { type: "rock", position: { x: 6, z: 2 } },
       { type: "tree_oak", position: { x: -4, z: 8 } },
       { type: "tree_pine", position: { x: 6, z: 4 } },
       { type: "tree_pine", position: { x: 6, z: -6 } },
       { type: "tree_oak", position: { x: -2, z: -10 } },
       { type: "tree_willow", position: { x: 10, z: -8 } },
-      { type: "fence", position: { x: -12, z: 0 }, rotation: -0.2 },
-      { type: "fence", position: { x: -12, z: 2 }, rotation: -0.2 },
       { type: "house_cottage", position: { x: 12, z: 10 }, rotation: 0.2, scale: 0.9 },
       { type: "stone_wall", position: { x: -10, z: -3 }, rotation: 0, length: 4 },
+      // Brook crossing from north edge to south edge
+      { type: "brook", position: { x: 3, z: 0 }, rotation: 0.15, length: 31 },
     ],
     objectives: ["Defeat all enemies"],
   },
@@ -116,19 +113,16 @@ export const scenarios: Scenario[] = [
       { type: "tree_oak", position: { x: 5, z: -12 } },
       { type: "tree_oak", position: { x: 3, z: -10 } },
       // Willows near the brook
-      { type: "tree_willow", position: { x: 16, z: 8 } },
-      { type: "tree_willow", position: { x: 16, z: -8 } },
+      { type: "tree_willow", position: { x: 12, z: 8 } },
+      { type: "tree_willow", position: { x: 12, z: -8 } },
       { type: "tree_pine", position: { x: 18, z: 5 } },
       { type: "tree_pine", position: { x: 18, z: -5 } },
       // Rocks
       { type: "rock", position: { x: 0, z: 8 } },
       { type: "rock", position: { x: 0, z: -8 } },
       { type: "rock", position: { x: 8, z: 0 }, scale: 1.2 },
-      // Brook running through the forest
-      { type: "brook", position: { x: 15, z: 0 }, rotation: 0, length: 10 },
-      // Fences
-      { type: "fence", position: { x: -14, z: 12 }, rotation: 0.4 },
-      { type: "fence", position: { x: -14, z: -12 }, rotation: -0.3 },
+      // Brook crossing the forest from north edge to south edge
+      { type: "brook", position: { x: 15, z: 0 }, rotation: 0.2, length: 41 },
     ],
     objectives: ["Survive the ambush", "Defeat all enemies"],
   },
@@ -170,11 +164,8 @@ export const scenarios: Scenario[] = [
       { type: "tree_oak", position: { x: 17, z: 8 } },
       { type: "tree_pine", position: { x: 15, z: -10 } },
       { type: "tree_oak", position: { x: 17, z: -8 } },
-      // Brook through village
-      { type: "brook", position: { x: -8, z: 0 }, rotation: 0.2, length: 8 },
-      // Fences
-      { type: "fence", position: { x: -3, z: 14 }, rotation: -0.5 },
-      { type: "fence", position: { x: -3, z: -14 }, rotation: 0.3 },
+      // Brook crossing through the village from north to south
+      { type: "brook", position: { x: -8, z: 0 }, rotation: 0.15, length: 41 },
     ],
     objectives: ["Defeat the orc patrol"],
   },
@@ -200,13 +191,12 @@ export const scenarios: Scenario[] = [
       { type: "goblin", position: { x: 8, z: 0 }, faction: "enemy" },
     ],
     obstacles: [
-      // River
-      { type: "river", position: { x: -5, z: 8 }, rotation: 0 },
-      { type: "river", position: { x: -5, z: -8 }, rotation: 0 },
-      // Bridge
+      // River crossing from north edge to south edge
+      { type: "river", position: { x: -5, z: 0 }, rotation: 0, length: 30 },
+      // Bridge across the river
       { type: "bridge", position: { x: -5, z: 0 }, rotation: 0 },
-      // Brook feeding into river from east
-      { type: "brook", position: { x: 5, z: 8 }, rotation: -0.5, length: 8 },
+      // Brook crossing from north edge to south edge
+      { type: "brook", position: { x: 15, z: 0 }, rotation: 0.2, length: 31 },
       // Trees - willows near water, mixed elsewhere
       { type: "tree_willow", position: { x: -12, z: 10 } },
       { type: "tree_willow", position: { x: -10, z: 12 } },
