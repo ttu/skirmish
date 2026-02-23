@@ -740,11 +740,39 @@ export class MovementSystem {
   }
 
   static updateEngagements(world: WorldImpl, entities: EntityId[]): void {
-    // Check all pairs of entities for engagement range
+    // Remove dead units from all engagement lists first
+    for (const entity of entities) {
+      const health = world.getComponent<HealthComponent>(entity, 'health');
+      if (health?.woundState !== 'down') continue;
+
+      const engagement = world.getComponent<EngagementComponent>(entity, 'engagement');
+      if (engagement && engagement.engagedWith.length > 0) {
+        for (const otherId of engagement.engagedWith) {
+          const otherEng = world.getComponent<EngagementComponent>(otherId, 'engagement');
+          if (otherEng && otherEng.engagedWith.includes(entity)) {
+            world.addComponent<EngagementComponent>(otherId, {
+              ...otherEng,
+              engagedWith: otherEng.engagedWith.filter((e) => e !== entity),
+            });
+          }
+        }
+        world.addComponent<EngagementComponent>(entity, {
+          ...engagement,
+          engagedWith: [],
+        });
+      }
+    }
+
+    // Check all pairs of living entities for engagement range
     for (let i = 0; i < entities.length; i++) {
       for (let j = i + 1; j < entities.length; j++) {
         const entityA = entities[i];
         const entityB = entities[j];
+
+        // Skip dead units
+        const healthA = world.getComponent<HealthComponent>(entityA, 'health');
+        const healthB = world.getComponent<HealthComponent>(entityB, 'health');
+        if (healthA?.woundState === 'down' || healthB?.woundState === 'down') continue;
 
         const engagementA = world.getComponent<EngagementComponent>(entityA, 'engagement');
         const engagementB = world.getComponent<EngagementComponent>(entityB, 'engagement');

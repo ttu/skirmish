@@ -9,6 +9,7 @@ import {
   EngagementComponent,
   HealthComponent,
   ObstacleComponent,
+  FactionComponent,
 } from '../../../src/engine/components';
 
 describe('MovementSystem', () => {
@@ -565,6 +566,49 @@ describe('MovementSystem', () => {
         const dist = MovementSystem.calculateDistance(point.x, point.y, 5, 5);
         expect(dist).toBeGreaterThanOrEqual(2.0);
       }
+    });
+  });
+
+  describe('updateEngagements with dead units', () => {
+    function createUnitWithHealth(x: number, y: number, faction: 'player' | 'enemy', woundState: HealthComponent['woundState'] = 'healthy') {
+      const entity = createMobileUnit(x, y);
+      world.addComponent<FactionComponent>(entity, { type: 'faction', faction });
+      world.addComponent<HealthComponent>(entity, {
+        type: 'health', current: woundState === 'down' ? 0 : 10, max: 10, woundState,
+      });
+      return entity;
+    }
+
+    it('removes dead units from engagement lists', () => {
+      const player = createUnitWithHealth(0, 0, 'player');
+      const enemy = createUnitWithHealth(0.5, 0, 'enemy');
+
+      // Establish engagement
+      MovementSystem.updateEngagements(world, [player, enemy]);
+
+      let playerEng = world.getComponent<EngagementComponent>(player, 'engagement')!;
+      expect(playerEng.engagedWith).toContain(enemy);
+
+      // Kill the enemy
+      world.addComponent<HealthComponent>(enemy, {
+        type: 'health', current: 0, max: 10, woundState: 'down',
+      });
+
+      // Update engagements — dead enemy should be removed
+      MovementSystem.updateEngagements(world, [player, enemy]);
+
+      playerEng = world.getComponent<EngagementComponent>(player, 'engagement')!;
+      expect(playerEng.engagedWith).not.toContain(enemy);
+    });
+
+    it('does not engage with dead units', () => {
+      const player = createUnitWithHealth(0, 0, 'player');
+      const deadEnemy = createUnitWithHealth(0.5, 0, 'enemy', 'down');
+
+      MovementSystem.updateEngagements(world, [player, deadEnemy]);
+
+      const playerEng = world.getComponent<EngagementComponent>(player, 'engagement')!;
+      expect(playerEng.engagedWith).not.toContain(deadEnemy);
     });
   });
 });

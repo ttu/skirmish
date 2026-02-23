@@ -65,12 +65,14 @@ export function getCombatStatus(world: WorldImpl, entityId: EntityId): CombatSta
   const weaponRange = weapon?.range ?? 1.2;
 
   if (engagement?.engagedWith.length) {
-    status.engagedEnemyIds = [...engagement.engagedWith];
+    // Filter out dead units from engaged list
+    status.engagedEnemyIds = engagement.engagedWith.filter((eid) => {
+      const h = world.getComponent<HealthComponent>(eid, 'health');
+      return !h || h.woundState !== 'down';
+    });
 
     // Check if any engaged enemy is in weapon range
-    for (const enemyId of engagement.engagedWith) {
-      const enemyHealth = world.getComponent<HealthComponent>(enemyId, 'health');
-      if (enemyHealth?.woundState === 'down') continue;
+    for (const enemyId of status.engagedEnemyIds) {
 
       const enemyPos = world.getComponent<PositionComponent>(enemyId, 'position');
       if (enemyPos) {
