@@ -1,13 +1,18 @@
 export type Faction = "player" | "enemy";
 
 export type UnitType =
+  | "militia"
   | "warrior"
+  | "veteran"
   | "archer"
+  | "crossbowman"
   | "knight"
   | "healer"
+  | "scout"
   | "goblin"
   | "orc_warrior"
   | "orc_archer"
+  | "orc_brute"
   | "troll";
 
 export interface ScenarioUnit {

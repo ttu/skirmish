@@ -1,6 +1,136 @@
 import { Scenario } from "../types";
 
 export const scenarios: Scenario[] = [
+  // === HUMAN VS HUMAN SCENARIOS ===
+  {
+    id: "warrior_duel",
+    name: "Warrior's Duel",
+    description:
+      "Two warriors settle a dispute in single combat. A mirror match to test melee balance.",
+    mapSize: { width: 15, height: 15 },
+    playerUnits: [
+      { type: "warrior", position: { x: -4, z: 0 }, faction: "player" },
+    ],
+    enemyUnits: [
+      { type: "warrior", position: { x: 4, z: 0 }, faction: "enemy" },
+    ],
+    obstacles: [
+      { type: "rock", position: { x: 0, z: 3 } },
+      { type: "rock", position: { x: 0, z: -3 } },
+      { type: "fence", position: { x: -6, z: 0 }, rotation: 0, length: 6 },
+      { type: "fence", position: { x: 6, z: 0 }, rotation: 0, length: 6 },
+    ],
+    objectives: ["Defeat the enemy warrior"],
+  },
+  {
+    id: "skirmish_line",
+    name: "Skirmish Line",
+    description:
+      "3v3 melee clash. Warriors and a veteran on each side test mixed melee combat.",
+    mapSize: { width: 25, height: 25 },
+    playerUnits: [
+      { type: "veteran", position: { x: -6, z: 0 }, faction: "player" },
+      { type: "warrior", position: { x: -6, z: 3 }, faction: "player" },
+      { type: "warrior", position: { x: -6, z: -3 }, faction: "player" },
+    ],
+    enemyUnits: [
+      { type: "veteran", position: { x: 6, z: 0 }, faction: "enemy" },
+      { type: "warrior", position: { x: 6, z: 3 }, faction: "enemy" },
+      { type: "warrior", position: { x: 6, z: -3 }, faction: "enemy" },
+    ],
+    obstacles: [
+      { type: "tree_oak", position: { x: -2, z: 8 } },
+      { type: "tree_oak", position: { x: 2, z: -8 } },
+      { type: "rock", position: { x: 0, z: 0 }, scale: 1.2 },
+      { type: "stone_wall", position: { x: 0, z: 5 }, rotation: 0, length: 3 },
+      { type: "stone_wall", position: { x: 0, z: -5 }, rotation: 0, length: 3 },
+    ],
+    objectives: ["Defeat all enemies"],
+  },
+  {
+    id: "rival_warband",
+    name: "Rival Warband",
+    description:
+      "5v5 with ranged and melee. Two rival warbands clash over a contested crossing.",
+    mapSize: { width: 35, height: 35 },
+    playerUnits: [
+      { type: "knight", position: { x: -10, z: 0 }, faction: "player" },
+      { type: "warrior", position: { x: -10, z: 3 }, faction: "player" },
+      { type: "warrior", position: { x: -10, z: -3 }, faction: "player" },
+      { type: "archer", position: { x: -13, z: 2 }, faction: "player" },
+      { type: "archer", position: { x: -13, z: -2 }, faction: "player" },
+    ],
+    enemyUnits: [
+      { type: "knight", position: { x: 10, z: 0 }, faction: "enemy" },
+      { type: "warrior", position: { x: 10, z: 3 }, faction: "enemy" },
+      { type: "warrior", position: { x: 10, z: -3 }, faction: "enemy" },
+      { type: "archer", position: { x: 13, z: 2 }, faction: "enemy" },
+      { type: "archer", position: { x: 13, z: -2 }, faction: "enemy" },
+    ],
+    obstacles: [
+      { type: "brook", position: { x: 0, z: 0 }, rotation: 0.1, length: 36 },
+      { type: "rock", position: { x: -3, z: 6 } },
+      { type: "rock", position: { x: 3, z: -6 } },
+      { type: "tree_pine", position: { x: -6, z: 10 } },
+      { type: "tree_pine", position: { x: -6, z: -10 } },
+      { type: "tree_oak", position: { x: 6, z: 10 } },
+      { type: "tree_oak", position: { x: 6, z: -10 } },
+      { type: "stone_wall", position: { x: -5, z: 0 }, rotation: 0, length: 4 },
+      { type: "stone_wall", position: { x: 5, z: 0 }, rotation: 0, length: 4 },
+    ],
+    objectives: ["Defeat the rival warband"],
+  },
+  {
+    id: "battle_of_the_crossroads",
+    name: "Battle of the Crossroads",
+    description:
+      "8v8 full warband battle. All unit roles represented on both sides — the ultimate balance test.",
+    mapSize: { width: 50, height: 40 },
+    playerUnits: [
+      { type: "knight", position: { x: -15, z: 0 }, faction: "player" },
+      { type: "veteran", position: { x: -15, z: 3 }, faction: "player" },
+      { type: "warrior", position: { x: -15, z: -3 }, faction: "player" },
+      { type: "warrior", position: { x: -15, z: 6 }, faction: "player" },
+      { type: "archer", position: { x: -18, z: 2 }, faction: "player" },
+      { type: "archer", position: { x: -18, z: -2 }, faction: "player" },
+      { type: "crossbowman", position: { x: -18, z: 5 }, faction: "player" },
+      { type: "healer", position: { x: -18, z: 0 }, faction: "player" },
+    ],
+    enemyUnits: [
+      { type: "knight", position: { x: 15, z: 0 }, faction: "enemy" },
+      { type: "veteran", position: { x: 15, z: 3 }, faction: "enemy" },
+      { type: "warrior", position: { x: 15, z: -3 }, faction: "enemy" },
+      { type: "warrior", position: { x: 15, z: 6 }, faction: "enemy" },
+      { type: "archer", position: { x: 18, z: 2 }, faction: "enemy" },
+      { type: "archer", position: { x: 18, z: -2 }, faction: "enemy" },
+      { type: "crossbowman", position: { x: 18, z: 5 }, faction: "enemy" },
+      { type: "healer", position: { x: 18, z: 0 }, faction: "enemy" },
+    ],
+    obstacles: [
+      // Crossroads in the center
+      { type: "stone_wall", position: { x: -3, z: 8 }, rotation: 0, length: 4 },
+      { type: "stone_wall", position: { x: -3, z: -8 }, rotation: 0, length: 4 },
+      { type: "stone_wall", position: { x: 3, z: 8 }, rotation: 0, length: 4 },
+      { type: "stone_wall", position: { x: 3, z: -8 }, rotation: 0, length: 4 },
+      // Buildings flanking the crossroads
+      { type: "house_cottage", position: { x: -5, z: 12 }, rotation: 0.2 },
+      { type: "house_stone", position: { x: 5, z: 12 }, rotation: -0.2 },
+      { type: "house_stone", position: { x: -5, z: -12 }, rotation: -0.1 },
+      { type: "house_hall", position: { x: 5, z: -12 }, rotation: 0.1 },
+      // Terrain
+      { type: "rock", position: { x: 0, z: 0 }, scale: 1.3 },
+      { type: "tree_oak", position: { x: -10, z: 14 } },
+      { type: "tree_oak", position: { x: 10, z: 14 } },
+      { type: "tree_pine", position: { x: -10, z: -14 } },
+      { type: "tree_pine", position: { x: 10, z: -14 } },
+      { type: "tree_willow", position: { x: -20, z: 10 } },
+      { type: "tree_willow", position: { x: 20, z: -10 } },
+      // Brook on the flank
+      { type: "brook", position: { x: -22, z: 0 }, rotation: 0.1, length: 41 },
+    ],
+    objectives: ["Defeat all enemies"],
+  },
+  // === MONSTER SCENARIOS ===
   {
     id: "quick_skirmish",
     name: "Quick Skirmish",
