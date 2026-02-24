@@ -102,7 +102,13 @@ export class CombatResolver {
   }
 
   static getLocationDamageMultiplier(location: HitLocation): number {
-    return location === 'head' ? 3 : 1;
+    if (location === 'head') return 3;
+    if (location === 'weapon') return 0;
+    return 1;
+  }
+
+  static calculateWeaponBreakChance(rawDamage: number): number {
+    return Math.min(30, rawDamage * 5);
   }
 
   static getArmorClass(armor: { head: number; torso: number; arms: number; legs: number }): ArmorClass {

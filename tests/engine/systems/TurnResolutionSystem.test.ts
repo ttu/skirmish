@@ -19,6 +19,7 @@ import {
   OverwatchComponent,
   WeaponComponent,
   FactionComponent,
+  OffHandComponent,
 } from '../../../src/engine/components';
 
 describe('TurnResolutionSystem', () => {
@@ -799,6 +800,165 @@ describe('TurnResolutionSystem', () => {
       const events = eventBus.getHistory();
       // Overwatch should trigger because goblin entered spear range (2m)
       expect(events.some((e) => e.type === 'OverwatchTriggered')).toBe(true);
+    });
+  });
+
+  describe('weapon hit location', () => {
+    it('deals no HP damage when hit location is weapon', () => {
+      let found = false;
+      for (let seed = 1; seed <= 200; seed++) {
+        const w = new WorldImpl();
+        const eb = new EventBusImpl();
+        const r = new DiceRoller(seed);
+        const a = UnitFactory.createUnit(w, 'warrior', 'player', 0, 0);
+        const d = UnitFactory.createUnit(w, 'warrior', 'enemy', 1, 0);
+
+        const hpBefore = w.getComponent<HealthComponent>(d, 'health')!.current;
+
+        TurnResolutionSystem.queueCommand(w, a, {
+          type: 'attack',
+          targetId: d,
+          attackType: 'melee',
+          chosenLocation: 'weapon',
+          apCost: 2,
+          priority: 5,
+        } as AttackCommand);
+
+        TurnResolutionSystem.resolveTurn(w, eb, r, 1);
+
+        const events = eb.getHistory();
+        if (events.some((e) => e.type === 'WeaponHitDeflected')) {
+          const hpAfter = w.getComponent<HealthComponent>(d, 'health')!.current;
+          expect(hpAfter).toBe(hpBefore);
+          found = true;
+          break;
+        }
+      }
+      expect(found).toBe(true);
+    });
+
+    it('drains stamina on weapon hit (impact shock)', () => {
+      let found = false;
+      for (let seed = 1; seed <= 200; seed++) {
+        const w = new WorldImpl();
+        const eb = new EventBusImpl();
+        const r = new DiceRoller(seed);
+        const a = UnitFactory.createUnit(w, 'warrior', 'player', 0, 0);
+        const d = UnitFactory.createUnit(w, 'warrior', 'enemy', 1, 0);
+
+        const staminaBefore = w.getComponent<StaminaComponent>(d, 'stamina')!.current;
+
+        TurnResolutionSystem.queueCommand(w, a, {
+          type: 'attack',
+          targetId: d,
+          attackType: 'melee',
+          chosenLocation: 'weapon',
+          apCost: 2,
+          priority: 5,
+        } as AttackCommand);
+
+        TurnResolutionSystem.resolveTurn(w, eb, r, 1);
+
+        const events = eb.getHistory();
+        if (events.some((e) => e.type === 'WeaponHitDeflected')) {
+          const staminaAfter = w.getComponent<StaminaComponent>(d, 'stamina')!.current;
+          expect(staminaAfter).toBeLessThan(staminaBefore);
+          found = true;
+          break;
+        }
+      }
+      expect(found).toBe(true);
+    });
+
+    it('can break defender shield on weapon hit', () => {
+      // Use a roller seeded so that attack hits and break roll succeeds
+      // We'll test deterministically by giving high damage and checking the event
+      const attacker = UnitFactory.createUnit(world, 'warrior', 'player', 0, 0);
+      const defender = UnitFactory.createUnit(world, 'warrior', 'enemy', 1, 0);
+
+      // Give defender a shield
+      world.addComponent<OffHandComponent>(defender, {
+        type: 'offHand',
+        itemType: 'shield',
+        blockBonus: 15,
+      });
+
+      TurnResolutionSystem.queueCommand(world, attacker, {
+        type: 'attack',
+        targetId: defender,
+        attackType: 'melee',
+        chosenLocation: 'weapon',
+        apCost: 2,
+        priority: 5,
+      } as AttackCommand);
+
+      // Try many seeds to find one where attack hits and shield breaks
+      let shieldBroke = false;
+      for (let seed = 1; seed <= 200; seed++) {
+        // Reset world for each attempt
+        const w = new WorldImpl();
+        const eb = new EventBusImpl();
+        const r = new DiceRoller(seed);
+        const a = UnitFactory.createUnit(w, 'warrior', 'player', 0, 0);
+        const d = UnitFactory.createUnit(w, 'warrior', 'enemy', 1, 0);
+        w.addComponent<OffHandComponent>(d, {
+          type: 'offHand',
+          itemType: 'shield',
+          blockBonus: 15,
+        });
+        TurnResolutionSystem.queueCommand(w, a, {
+          type: 'attack',
+          targetId: d,
+          attackType: 'melee',
+          chosenLocation: 'weapon',
+          apCost: 2,
+          priority: 5,
+        } as AttackCommand);
+        TurnResolutionSystem.resolveTurn(w, eb, r, 1);
+
+        const evts = eb.getHistory();
+        if (evts.some((e) => e.type === 'WeaponBroken')) {
+          const offHand = w.getComponent<OffHandComponent>(d, 'offHand')!;
+          expect(offHand.blockBonus).toBe(0);
+          shieldBroke = true;
+          break;
+        }
+      }
+      expect(shieldBroke).toBe(true);
+    });
+
+    it('reduces weapon damage bonus when no shield and weapon breaks', () => {
+      let weaponBroke = false;
+      for (let seed = 1; seed <= 200; seed++) {
+        const w = new WorldImpl();
+        const eb = new EventBusImpl();
+        const r = new DiceRoller(seed);
+        const a = UnitFactory.createUnit(w, 'warrior', 'player', 0, 0);
+        const d = UnitFactory.createUnit(w, 'warrior', 'enemy', 1, 0);
+        // Ensure defender has no shield (default warrior may or may not)
+        w.removeComponent(d, 'offHand');
+        const weaponBefore = w.getComponent<WeaponComponent>(d, 'weapon')!;
+        const bonusBefore = weaponBefore.damage.bonus;
+
+        TurnResolutionSystem.queueCommand(w, a, {
+          type: 'attack',
+          targetId: d,
+          attackType: 'melee',
+          chosenLocation: 'weapon',
+          apCost: 2,
+          priority: 5,
+        } as AttackCommand);
+        TurnResolutionSystem.resolveTurn(w, eb, r, 1);
+
+        const evts = eb.getHistory();
+        if (evts.some((e) => e.type === 'WeaponBroken')) {
+          const weaponAfter = w.getComponent<WeaponComponent>(d, 'weapon')!;
+          expect(weaponAfter.damage.bonus).toBe(Math.max(0, bonusBefore - 1));
+          weaponBroke = true;
+          break;
+        }
+      }
+      expect(weaponBroke).toBe(true);
     });
   });
 });

@@ -296,8 +296,12 @@ export class TurnResolutionSystem {
     // Build set of entities that were hit this turn (for conditional stamina recovery)
     const hitEntities = new Set<EntityId>();
     for (const evt of eventBus.getHistory()) {
-      if (evt.type === 'DamageDealt' && evt.turn === turn && evt.targetId) {
+      if (evt.turn !== turn) continue;
+      if (evt.type === 'DamageDealt' && evt.targetId) {
         hitEntities.add(evt.targetId as EntityId);
+      }
+      if (evt.type === 'WeaponHitDeflected' && evt.entityId) {
+        hitEntities.add(evt.entityId as EntityId);
       }
     }
 
@@ -781,6 +785,65 @@ export class TurnResolutionSystem {
 
     // Calculate damage (height advantage: +1 damage when attacker is higher)
     const damageResult = CombatResolver.calculateDamage(attackerWeapon.damage, armor, roller);
+
+    // Weapon hit: deflected by weapon/shield — no HP damage, but impact shock + break chance
+    if (location === 'weapon') {
+      const staminaDrain = StaminaSystem.calculateArmorStaminaDrain(damageResult.rawDamage);
+      if (staminaDrain > 0) {
+        StaminaSystem.drainStamina(world, eventBus, command.targetId, staminaDrain, turn);
+      }
+
+      eventBus.emit({
+        type: 'WeaponHitDeflected',
+        turn,
+        timestamp: Date.now(),
+        entityId: command.targetId,
+        data: { rawDamage: damageResult.rawDamage, staminaDrain },
+      });
+
+      // Roll for weapon/shield break
+      const breakChance = CombatResolver.calculateWeaponBreakChance(damageResult.rawDamage);
+      const breakRoll = roller.rollD100();
+      if (breakRoll <= breakChance) {
+        const offHand = world.getComponent<OffHandComponent>(command.targetId, 'offHand');
+        if (offHand?.itemType === 'shield') {
+          // Shield breaks: lose block bonus
+          world.addComponent<OffHandComponent>(command.targetId, {
+            ...offHand,
+            blockBonus: 0,
+          });
+          eventBus.emit({
+            type: 'WeaponBroken',
+            turn,
+            timestamp: Date.now(),
+            entityId: command.targetId,
+            data: { item: 'shield', breakRoll, breakChance },
+          });
+        } else {
+          // Weapon damaged: reduce damage bonus by 1
+          const defenderWeapon = world.getComponent<WeaponComponent>(command.targetId, 'weapon');
+          if (defenderWeapon) {
+            world.addComponent<WeaponComponent>(command.targetId, {
+              ...defenderWeapon,
+              damage: {
+                ...defenderWeapon.damage,
+                bonus: Math.max(0, defenderWeapon.damage.bonus - 1),
+              },
+            });
+            eventBus.emit({
+              type: 'WeaponBroken',
+              turn,
+              timestamp: Date.now(),
+              entityId: command.targetId,
+              data: { item: 'weapon', breakRoll, breakChance },
+            });
+          }
+        }
+      }
+
+      return true;
+    }
+
     const multiplier = CombatResolver.getLocationDamageMultiplier(location);
     let finalDamage = Math.floor(damageResult.finalDamage * multiplier);
     if (attackerElevation > defenderElevation) {

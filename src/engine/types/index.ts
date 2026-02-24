@@ -64,6 +64,8 @@ export type GameEventType =
   | 'WoundEffectApplied'
   | 'BleedingDamage'
   | 'ArmorImpact'
+  | 'WeaponHitDeflected'
+  | 'WeaponBroken'
   | 'VictoryAchieved'
   | 'DefeatSuffered';
 

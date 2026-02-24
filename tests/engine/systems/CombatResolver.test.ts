@@ -171,4 +171,23 @@ describe('CombatResolver', () => {
       expect(CombatResolver.getLocationDamageMultiplier('legs')).toBe(1);
     });
   });
+
+  describe('getLocationDamageMultiplier for weapon', () => {
+    it('returns 0 for weapon hits (no HP damage)', () => {
+      expect(CombatResolver.getLocationDamageMultiplier('weapon')).toBe(0);
+    });
+  });
+
+  describe('calculateWeaponBreakChance', () => {
+    it('returns rawDamage * 5 capped at 30', () => {
+      expect(CombatResolver.calculateWeaponBreakChance(1)).toBe(5);
+      expect(CombatResolver.calculateWeaponBreakChance(4)).toBe(20);
+      expect(CombatResolver.calculateWeaponBreakChance(6)).toBe(30);
+      expect(CombatResolver.calculateWeaponBreakChance(10)).toBe(30);
+    });
+
+    it('returns 0 for 0 damage', () => {
+      expect(CombatResolver.calculateWeaponBreakChance(0)).toBe(0);
+    });
+  });
 });
