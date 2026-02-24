@@ -132,7 +132,8 @@ export class DiceRollSidebar {
     const defenderClass = defenderFaction === 'player' ? 'player-unit' : 'enemy-unit';
     const attackerColor = attackerFaction === 'player' ? '#4fc3f7' : '#e85a5a';
     const defenderColor = defenderFaction === 'player' ? '#4fc3f7' : '#e85a5a';
-    header.innerHTML = `<span class="${attackerClass}" style="color:${attackerColor} !important">${attackerName}</span> <span class="arrow">\u2192</span> <span class="${defenderClass}" style="color:${defenderColor} !important">${defenderName}</span>`;
+    const turn = event.turn + 1; // 1-based display
+    header.innerHTML = `<span class="${attackerClass}" style="color:${attackerColor} !important">${attackerName}</span> <span class="arrow">\u2192</span> <span class="${defenderClass}" style="color:${defenderColor} !important">${defenderName}</span><span class="dice-header-turn">[T${turn}]</span>`;
     exchange.appendChild(header);
 
     this.contentEl.insertBefore(exchange, this.contentEl.firstChild);
@@ -294,7 +295,7 @@ export class DiceRollSidebar {
     const marker = document.createElement('div');
     marker.className = `dice-prob-marker ${success ? 'success' : 'fail'}`;
     marker.style.left = `${roll}%`;
-    marker.innerHTML = `\u25BC <span class="dice-roll-number">${roll}</span><span class="dice-result-label">${resultLabel}</span>`;
+    marker.innerHTML = `<span class="dice-marker-arrow">\u25BC</span><span class="dice-marker-text" style="transform:translateX(${-roll}%)"><span class="dice-roll-number">${roll}</span> <span class="dice-result-label">${resultLabel}</span></span>`;
     bar.appendChild(marker);
 
     section.appendChild(bar);
