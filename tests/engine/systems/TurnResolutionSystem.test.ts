@@ -734,8 +734,42 @@ describe('TurnResolutionSystem', () => {
 
       const outOfRange = eventBus.getHistory().find((e) => e.type === 'AttackOutOfRange');
       expect(outOfRange).toBeDefined();
-      // Goblin knife range is 1, not the old hardcoded 1.2
-      expect(outOfRange!.data.requiredRange).toBe(1);
+      // Goblin knife range is 1, but effective melee range is MELEE_ATTACK_RANGE (1.2)
+      expect(outOfRange!.data.requiredRange).toBe(1.2);
+    });
+
+    it('melee attack succeeds within MELEE_ATTACK_RANGE even if beyond weapon.range', () => {
+      // Goblin knife has range 1.0, MELEE_ATTACK_RANGE is 1.2
+      // At 1.15m (within MELEE_ATTACK_RANGE), attack should succeed without needing auto-close
+      const player = UnitFactory.createUnit(world, 'warrior', 'player', 0, 0);
+      const goblin = UnitFactory.createUnit(world, 'goblin', 'enemy', 1.15, 0);
+
+      // Give goblin only 1 AP - not enough for auto-close (2 AP advance + 1 AP attack)
+      // This forces the range check itself to accept MELEE_ATTACK_RANGE
+      world.addComponent<ActionPointsComponent>(goblin, {
+        type: 'actionPoints',
+        current: 1,
+        max: 6,
+        baseValue: 6,
+        armorPenalty: 0,
+        experienceBonus: 0,
+      });
+
+      TurnResolutionSystem.queueCommand(world, goblin, {
+        type: 'attack',
+        targetId: player,
+        attackType: 'melee',
+        apCost: 1,
+        priority: 2,
+      } as AttackCommand);
+
+      TurnResolutionSystem.resolveTurn(world, eventBus, roller, 1);
+
+      const events = eventBus.getHistory();
+      // Should NOT emit AttackOutOfRange - 1.15m is within MELEE_ATTACK_RANGE (1.2m)
+      expect(events.some((e) => e.type === 'AttackOutOfRange')).toBe(false);
+      // Should emit AttackDeclared (attack proceeded)
+      expect(events.some((e) => e.type === 'AttackDeclared' && e.entityId === goblin)).toBe(true);
     });
 
     it('melee overwatch triggers at weapon range, not hardcoded constant', () => {

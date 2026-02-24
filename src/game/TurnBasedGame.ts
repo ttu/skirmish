@@ -312,7 +312,9 @@ export class TurnBasedGame {
       }
       const attackType = weapon ? getAttackType(weapon) : "melee";
       const attackAp = weapon?.apCost ?? 2;
-      const effectiveRange = weapon?.range ?? 1.2;
+      const effectiveRange = weapon
+        ? (isRangedWeapon(weapon) ? weapon.range : Math.max(weapon.range, MovementSystem.MELEE_ATTACK_RANGE))
+        : MovementSystem.MELEE_ATTACK_RANGE;
       const distance = MovementSystem.calculateDistance(
         fromX,
         fromY,
@@ -1970,7 +1972,7 @@ export class TurnBasedGame {
             const dist = MovementSystem.calculateDistance(playerPos.x, playerPos.y, enemyPos.x, enemyPos.y);
             if (dist < closestDistance) {
               closestDistance = dist;
-              inRange = dist <= (weapon?.range ?? 1.2);
+              inRange = dist <= (weapon ? (isRangedWeapon(weapon) ? weapon.range : Math.max(weapon.range, MovementSystem.MELEE_ATTACK_RANGE)) : MovementSystem.MELEE_ATTACK_RANGE);
             }
           }
 
@@ -2029,7 +2031,9 @@ export class TurnBasedGame {
           }
           let closestEnemyDist = Infinity;
           let closestEnemyInRange = false;
-          const effectiveRange = weapon?.range ?? 1.2;
+          const effectiveRange = weapon
+            ? (isRangedWeapon(weapon) ? weapon.range : Math.max(weapon.range, MovementSystem.MELEE_ATTACK_RANGE))
+            : MovementSystem.MELEE_ATTACK_RANGE;
           const enemyUnits = world.query("position", "faction", "health");
           for (const enemyId of enemyUnits) {
             const enemyFaction = world.getComponent<FactionComponent>(enemyId, "faction");
@@ -2124,7 +2128,9 @@ export class TurnBasedGame {
 
               const dist = ePos ? MovementSystem.calculateDistance(fromX, fromY, ePos.x, ePos.y) : Infinity;
               const distStr = dist < Infinity ? dist.toFixed(1) + "m" : "—";
-              const effectiveEnemyRange = eWeapon?.range ?? 1.2;
+              const effectiveEnemyRange = eWeapon
+                ? (isRangedWeapon(eWeapon) ? eWeapon.range : Math.max(eWeapon.range, MovementSystem.MELEE_ATTACK_RANGE))
+                : MovementSystem.MELEE_ATTACK_RANGE;
               const eInRange = dist <= effectiveEnemyRange;
               const eRangeIndicator = eInRange
                 ? '<span class="distance-indicator distance-in-range">In Range</span>'
@@ -2276,7 +2282,9 @@ export class TurnBasedGame {
                 targetPos.x,
                 targetPos.y
               );
-              const effectiveRange = weapon?.range ?? 1.2;
+              const effectiveRange = weapon
+                ? (isRangedWeapon(weapon) ? weapon.range : Math.max(weapon.range, MovementSystem.MELEE_ATTACK_RANGE))
+                : MovementSystem.MELEE_ATTACK_RANGE;
               const totalQueuedAp = queue?.commands.reduce((sum, c) => sum + c.apCost, 0) ?? 0;
               const remainingAp = ap.current - totalQueuedAp;
 

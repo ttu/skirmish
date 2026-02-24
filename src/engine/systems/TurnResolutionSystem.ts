@@ -508,12 +508,14 @@ export class TurnResolutionSystem {
       return true; // consume the command but skip the attack
     }
 
-    // Melee attacks require units to be within the weapon's range
+    // Melee attacks require units to be within the weapon's range.
+    // Use at least MELEE_ATTACK_RANGE so short weapons (e.g. knife range 1.0)
+    // can attack at MIN_UNIT_SEPARATION distance without floating-point issues.
     if (command.attackType === 'melee') {
       const attackerPos = world.getComponent<PositionComponent>(attackerId, 'position');
       const defenderPos = world.getComponent<PositionComponent>(command.targetId, 'position');
       if (attackerPos && defenderPos) {
-        const weaponRange = attackerWeapon.range;
+        const weaponRange = Math.max(attackerWeapon.range, MovementSystem.MELEE_ATTACK_RANGE);
         let dist = MovementSystem.calculateDistance(
           attackerPos.x, attackerPos.y,
           defenderPos.x, defenderPos.y

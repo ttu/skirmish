@@ -21,6 +21,7 @@ import { TurnResolutionSystem } from './TurnResolutionSystem';
 import { MovementSystem } from './MovementSystem';
 import { VictorySystem } from './VictorySystem';
 import { UnitFactory } from '../data/UnitFactory';
+import { isRangedWeapon } from '../components';
 
 export type AIPersonality = 'aggressive' | 'cunning' | 'cautious' | 'brutal' | 'honorable';
 
@@ -55,8 +56,13 @@ export interface BattlefieldAnalysis {
 }
 
 export class AICommandSystem {
-  /** Returns the weapon's effective attack range. */
+  /** Returns the weapon's effective attack range.
+   *  For melee weapons, uses at least MELEE_ATTACK_RANGE so the AI queues attacks
+   *  when within touching distance. TurnResolution's auto-close handles the gap. */
   private static getEffectiveAttackRange(weapon: WeaponComponent): number {
+    if (!isRangedWeapon(weapon)) {
+      return Math.max(weapon.range, MovementSystem.MELEE_ATTACK_RANGE);
+    }
     return weapon.range;
   }
   /**

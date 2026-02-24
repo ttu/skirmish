@@ -326,6 +326,54 @@ describe('AICommandSystem', () => {
     });
   });
 
+  describe('melee attack range', () => {
+    it('queues attack when within MELEE_ATTACK_RANGE even if beyond weapon.range', () => {
+      // Goblin knife has range 1.0, but MELEE_ATTACK_RANGE is 1.2
+      // At 1.2m distance, goblin should queue attack (auto-close handles the gap)
+      const player = UnitFactory.createUnit(world, 'warrior', 'player', 0, 0);
+      const goblin = UnitFactory.createUnit(world, 'goblin', 'enemy', 1.2, 0);
+
+      AICommandSystem.setPersonality(world, goblin, 'aggressive');
+      AICommandSystem.generateCommands(world, eventBus, 'enemy');
+
+      const queue = world.getComponent<CommandQueueComponent>(goblin, 'commandQueue');
+      expect(queue?.commands.some((c) => c.type === 'attack')).toBe(true);
+    });
+
+    it('still queues move when beyond MELEE_ATTACK_RANGE', () => {
+      // At 3m distance, goblin should move, not attack
+      const player = UnitFactory.createUnit(world, 'warrior', 'player', 0, 0);
+      const goblin = UnitFactory.createUnit(world, 'goblin', 'enemy', 3, 0);
+
+      AICommandSystem.setPersonality(world, goblin, 'aggressive');
+      AICommandSystem.generateCommands(world, eventBus, 'enemy');
+
+      const queue = world.getComponent<CommandQueueComponent>(goblin, 'commandQueue');
+      expect(queue?.commands.some((c) => c.type === 'move')).toBe(true);
+      expect(queue?.commands.some((c) => c.type === 'attack')).toBe(false);
+    });
+
+    it('works for all melee personalities when within MELEE_ATTACK_RANGE', () => {
+      const personalities: AIPersonality[] = ['aggressive', 'cunning', 'brutal', 'honorable'];
+
+      for (const personality of personalities) {
+        const testWorld = new WorldImpl();
+        const testEventBus = new EventBusImpl();
+        const player = UnitFactory.createUnit(testWorld, 'warrior', 'player', 0, 0);
+        const goblin = UnitFactory.createUnit(testWorld, 'goblin', 'enemy', 1.15, 0);
+
+        AICommandSystem.setPersonality(testWorld, goblin, personality);
+        AICommandSystem.generateCommands(testWorld, testEventBus, 'enemy');
+
+        const queue = testWorld.getComponent<CommandQueueComponent>(goblin, 'commandQueue');
+        expect(
+          queue?.commands.some((c) => c.type === 'attack'),
+          `${personality} personality should queue attack at 1.15m`
+        ).toBe(true);
+      }
+    });
+  });
+
   describe('integration with turn resolution', () => {
     it('AI commands are executed during turn resolution', () => {
       const player = UnitFactory.createUnit(world, 'warrior', 'player', 0, 0);
