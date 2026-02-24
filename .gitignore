@@ -4,3 +4,6 @@ dist
 *.log
 
 AGENTS.local.md
+
+# Git worktrees
+.worktrees

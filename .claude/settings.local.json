@@ -11,7 +11,8 @@
       "Bash(npm run test:run:*)",
       "Bash(npm test:*)",
       "Bash(npx vitest run:*)",
-      "Bash(npx vite build:*)"
+      "Bash(npx vite build:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
