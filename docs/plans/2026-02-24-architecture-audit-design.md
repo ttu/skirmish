@@ -109,4 +109,4 @@ No file imports both. No confusion. No changes needed.
 | 5 | Geometry/material caching | Performance + memory | Medium |
 | 6 | ~~Delete dead code in Obstacle.ts~~ | ~~Code hygiene~~ | ~~Low~~ | **DONE** |
 | 7 | ~~Decompose TurnBasedGame.ts~~ | ~~Maintainability~~ | ~~High~~ | **DONE** (2,745 → 366 lines, 5 modules) |
-| 8 | InstancedMesh for repeated elements | Draw call optimization | Medium |
+| 8 | ~~InstancedMesh for repeated elements~~ | ~~Draw call optimization~~ | ~~Medium~~ | **DONE** (willow branches, bridge planks, fence posts/rails) |

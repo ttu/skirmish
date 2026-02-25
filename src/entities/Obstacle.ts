@@ -200,22 +200,22 @@ export class Obstacle {
     canopy.castShadow = true;
     this.mesh.add(canopy);
 
-    // Drooping branches
+    // Drooping branches (InstancedMesh — 6 identical cylinders)
     const branchMaterial = createPrintedMaterial({ color: 0x556b2f });
+    const branchGeometry = new THREE.CylinderGeometry(0.02 * scale, 0.02 * scale, 0.8 * scale, 4);
+    const branches = new THREE.InstancedMesh(branchGeometry, branchMaterial, 6);
+    branches.castShadow = true;
+    const branchMatrix = new THREE.Matrix4();
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const branchGeometry = new THREE.CylinderGeometry(
-        0.02 * scale, 0.02 * scale, 0.8 * scale, 4,
-      );
-      const branch = new THREE.Mesh(branchGeometry, branchMaterial);
-      branch.position.set(
+      branchMatrix.makeTranslation(
         Math.cos(angle) * 0.9 * scale,
         0.7 * scale,
         Math.sin(angle) * 0.9 * scale,
       );
-      branch.castShadow = true;
-      this.mesh.add(branch);
+      branches.setMatrixAt(i, branchMatrix);
     }
+    this.mesh.add(branches);
   }
 
   // ── House variants ─────────────────────────────────────────────
@@ -565,18 +565,19 @@ export class Obstacle {
 
     const woodMaterial = createPrintedMaterial({ color: 0x8b6914 });
 
+    // Planks (InstancedMesh — ~20 identical boxes)
     const plankCount = Math.ceil(width / plankWidth);
+    const plankGeometry = new THREE.BoxGeometry(plankWidth * 0.9, plankThickness, length);
+    const planks = new THREE.InstancedMesh(plankGeometry, woodMaterial, plankCount);
+    planks.castShadow = true;
+    planks.receiveShadow = true;
+    const plankMatrix = new THREE.Matrix4();
     for (let i = 0; i < plankCount; i++) {
       const offset = -width / 2 + plankWidth / 2 + i * plankWidth;
-      const plankGeometry = new THREE.BoxGeometry(
-        plankWidth * 0.9, plankThickness, length,
-      );
-      const plank = new THREE.Mesh(plankGeometry, woodMaterial);
-      plank.position.set(offset, 0.1 + plankThickness / 2, 0);
-      plank.castShadow = true;
-      plank.receiveShadow = true;
-      this.mesh.add(plank);
+      plankMatrix.makeTranslation(offset, 0.1 + plankThickness / 2, 0);
+      planks.setMatrixAt(i, plankMatrix);
     }
+    this.mesh.add(planks);
 
     const beamMaterial = createPrintedMaterial({ color: 0x6b4a0a });
     const sideBeamGeometry = new THREE.BoxGeometry(
@@ -612,33 +613,50 @@ export class Obstacle {
       return (rng & 0x7fffffff) / 0x7fffffff;
     };
 
+    // Posts (2 InstancedMeshes — split by material, per-instance scale.y)
     const postGeometry = new THREE.BoxGeometry(postWidth, postHeight, postWidth);
+    const lightPosts: { x: number; y: number; sy: number }[] = [];
+    const darkPosts: { x: number; y: number; sy: number }[] = [];
     for (let i = 0; i < postCount; i++) {
       const x = -fenceLength / 2 + i * actualSpacing;
-      const heightVariation = 1 + (random() - 0.5) * 0.15;
-      const post = new THREE.Mesh(postGeometry, i % 3 === 0 ? darkWoodMaterial : woodMaterial);
-      post.position.set(x, (postHeight * heightVariation) / 2, 0);
-      post.scale.y = heightVariation;
-      post.castShadow = true;
-      this.mesh.add(post);
+      const hv = 1 + (random() - 0.5) * 0.15;
+      const entry = { x, y: (postHeight * hv) / 2, sy: hv };
+      (i % 3 === 0 ? darkPosts : lightPosts).push(entry);
     }
 
-    // Rails connecting posts
+    const addPostInstances = (material: THREE.Material, posts: typeof lightPosts) => {
+      if (posts.length === 0) return;
+      const inst = new THREE.InstancedMesh(postGeometry, material, posts.length);
+      inst.castShadow = true;
+      const mat = new THREE.Matrix4();
+      const p = new THREE.Vector3();
+      const q = new THREE.Quaternion();
+      const scl = new THREE.Vector3();
+      for (let j = 0; j < posts.length; j++) {
+        p.set(posts[j].x, posts[j].y, 0);
+        scl.set(1, posts[j].sy, 1);
+        mat.compose(p, q, scl);
+        inst.setMatrixAt(j, mat);
+      }
+      this.mesh.add(inst);
+    };
+    addPostInstances(woodMaterial, lightPosts);
+    addPostInstances(darkWoodMaterial, darkPosts);
+
+    // Rails connecting posts (InstancedMesh — 2 per section)
+    const railCount = (postCount - 1) * 2;
+    const railGeometry = new THREE.BoxGeometry(actualSpacing, railHeight, postWidth * 0.8);
+    const rails = new THREE.InstancedMesh(railGeometry, woodMaterial, railCount);
+    rails.castShadow = true;
+    const railMatrix = new THREE.Matrix4();
     for (let i = 0; i < postCount - 1; i++) {
-      const x0 = -fenceLength / 2 + i * actualSpacing;
-      const midX = x0 + actualSpacing / 2;
-      const railGeometry = new THREE.BoxGeometry(actualSpacing, railHeight, postWidth * 0.8);
-
-      const topRail = new THREE.Mesh(railGeometry, woodMaterial);
-      topRail.position.set(midX, postHeight - railHeight, 0);
-      topRail.castShadow = true;
-      this.mesh.add(topRail);
-
-      const midRail = new THREE.Mesh(railGeometry, woodMaterial);
-      midRail.position.set(midX, postHeight * 0.5, 0);
-      midRail.castShadow = true;
-      this.mesh.add(midRail);
+      const midX = -fenceLength / 2 + i * actualSpacing + actualSpacing / 2;
+      railMatrix.makeTranslation(midX, postHeight - railHeight, 0);
+      rails.setMatrixAt(i * 2, railMatrix);
+      railMatrix.makeTranslation(midX, postHeight * 0.5, 0);
+      rails.setMatrixAt(i * 2 + 1, railMatrix);
     }
+    this.mesh.add(rails);
   }
 
   // ── Update ─────────────────────────────────────────────────────
