@@ -11,6 +11,9 @@ import {
   getAttackType,
   isRangedWeapon,
   SkillsComponent,
+  ArmorComponent,
+  WoundEffectsComponent,
+  AttackCommand,
 } from "../engine/components";
 import { MovementSystem } from "../engine/systems/MovementSystem";
 import { CombatLogUI } from "../ui/CombatLogUI";
@@ -19,10 +22,8 @@ import { ScreenStateManager } from "../ui/ScreenStateManager";
 import { ToastManager } from "../ui/ToastManager";
 import { EntityId, GameEvent } from "../engine/types";
 import { GameEngine } from "../engine/core/GameEngine";
-import {
-  getCombatStatus,
-  renderCombatStatusBadges,
-} from "../ui/CombatStatusHelpers";
+import { renderCombatStatusBadges } from "../ui/CombatStatusHelpers";
+import { getCombatStatus } from "./CombatStatusQuery";
 import {
   formatQueuedCommands,
   renderCommandList,
@@ -518,8 +519,12 @@ export class UIManager {
           ? '<span style="color:#ffd700">Planning...</span>'
           : '<span style="color:#888">Ready</span>';
 
+      const eHealth = world.getComponent<HealthComponent>(id, "health");
+      const eArmor = world.getComponent<ArmorComponent>(id, "armor");
+      const eWounds = world.getComponent<WoundEffectsComponent>(id, "woundEffects");
+
       const lines = [
-        renderEnemyBodyDiagram(id, observerPerception, world),
+        renderEnemyBodyDiagram(observerPerception, eHealth, eArmor, eWounds),
         "<div>" + label("Weapon") + weaponStr + "</div>",
         "<div>" +
           label("Distance") +
@@ -650,7 +655,29 @@ export class UIManager {
       const combatStatus = getCombatStatus(world, id);
       const badges = renderCombatStatusBadges(combatStatus);
 
-      const formattedCommands = formatQueuedCommands(world, id);
+      // Build target name map for attack commands
+      const targetNames = new Map<EntityId, string>();
+      for (const cmd of queue?.commands ?? []) {
+        if (cmd.type === "attack") {
+          const targetId = (cmd as AttackCommand).targetId;
+          if (!targetNames.has(targetId)) {
+            const tIdentity = world.getComponent<IdentityComponent>(targetId, "identity");
+            if (tIdentity) {
+              const tType = tIdentity.unitType.charAt(0).toUpperCase() + tIdentity.unitType.slice(1);
+              targetNames.set(targetId, tIdentity.shortId != null ? `${tType} #${tIdentity.shortId}` : tIdentity.name);
+            } else {
+              targetNames.set(targetId, "Unknown");
+            }
+          }
+        }
+      }
+      const formattedCommands = formatQueuedCommands({
+        commands: queue?.commands ?? [],
+        position: { x: pos?.x ?? 0, y: pos?.y ?? 0 },
+        weaponName: weapon?.name,
+        weaponDamage: weapon?.damage,
+        targetNames,
+      });
       const commandListHtml = renderCommandList(
         formattedCommands,
         ap?.current ?? 0,
@@ -659,7 +686,11 @@ export class UIManager {
 
       const lines = [
         badges ? '<div class="status-badges">' + badges + "</div>" : "",
-        renderBodyDiagram(id, world),
+        renderBodyDiagram(
+          world.getComponent<HealthComponent>(id, "health"),
+          world.getComponent<ArmorComponent>(id, "armor"),
+          world.getComponent<WoundEffectsComponent>(id, "woundEffects")
+        ),
         "<div>" +
           label("AP") +
           remainingAp +
@@ -807,7 +838,12 @@ export class UIManager {
           '<div style="color:#ff8080;font-weight:600;margin-bottom:3px">' +
           eName +
           "</div>" +
-          renderEnemyBodyDiagram(enemyId, observerPerception, world) +
+          renderEnemyBodyDiagram(
+            observerPerception,
+            eHealth,
+            world.getComponent<ArmorComponent>(enemyId, "armor"),
+            world.getComponent<WoundEffectsComponent>(enemyId, "woundEffects")
+          ) +
           "<div>" +
           elabel("Weapon") +
           eWeaponStr +

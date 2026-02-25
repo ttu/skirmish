@@ -6,8 +6,6 @@ import {
   HealthComponent,
 } from '../engine/components';
 import { PerceptionTier, getPerceptionTier } from './PerceptionHelpers';
-import { WorldImpl } from '../engine/ecs/World';
-import { EntityId } from '../engine/types';
 
 // --- Constants ---
 
@@ -251,12 +249,10 @@ function renderSvgZone(zone: BodyZone, data: ZoneData): string {
 // --- Public render functions ---
 
 export function renderBodyDiagram(
-  entityId: EntityId,
-  world: WorldImpl
+  health: HealthComponent | undefined,
+  armor: ArmorComponent | undefined,
+  woundEffects: WoundEffectsComponent | undefined
 ): string {
-  const health = world.getComponent<HealthComponent>(entityId, 'health');
-  const armor = world.getComponent<ArmorComponent>(entityId, 'armor');
-  const woundEffects = world.getComponent<WoundEffectsComponent>(entityId, 'woundEffects');
   const isDown = health?.woundState === 'down';
 
   const zones: BodyZone[] = ['head', 'torso', 'arms', 'legs'];
@@ -284,14 +280,12 @@ export function renderBodyDiagram(
 }
 
 export function renderEnemyBodyDiagram(
-  entityId: EntityId,
   observerPerception: number,
-  world: WorldImpl
+  health: HealthComponent | undefined,
+  armor: ArmorComponent | undefined,
+  woundEffects: WoundEffectsComponent | undefined
 ): string {
   const tier = getPerceptionTier(observerPerception);
-  const health = world.getComponent<HealthComponent>(entityId, 'health');
-  const armor = world.getComponent<ArmorComponent>(entityId, 'armor');
-  const woundEffects = world.getComponent<WoundEffectsComponent>(entityId, 'woundEffects');
   const isDown = health?.woundState === 'down';
 
   const zones: BodyZone[] = ['head', 'torso', 'arms', 'legs'];

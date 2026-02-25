@@ -1,18 +1,12 @@
-import { WorldImpl } from '../engine/ecs/World';
 import { EntityId } from '../engine/types';
 import {
   MoveCommand,
   AttackCommand,
   DefendCommand,
   OverwatchCommand,
-  IdentityComponent,
-  WeaponComponent,
-  PositionComponent,
-  CommandQueueComponent,
   UnitCommand,
   CommandCondition,
 } from '../engine/components';
-import { MovementSystem } from '../engine/systems/MovementSystem';
 
 export interface FormattedCommand {
   index: number;
@@ -24,12 +18,48 @@ export interface FormattedCommand {
   condition?: string;
 }
 
-function getEntityDisplayName(world: WorldImpl, entityId: EntityId): string {
-  const identity = world.getComponent<IdentityComponent>(entityId, 'identity');
-  if (!identity) return 'Unknown';
-  const typeName = identity.unitType.charAt(0).toUpperCase() + identity.unitType.slice(1);
-  return identity.shortId != null ? `${typeName} #${identity.shortId}` : identity.name;
+/** Pre-extracted data for formatting commands (no ECS access needed). */
+export interface CommandFormatterInput {
+  commands: UnitCommand[];
+  position: { x: number; y: number };
+  weaponName?: string;
+  weaponDamage?: { dice: number; sides: number; bonus: number };
+  /** Pre-resolved display names for attack target entity IDs. */
+  targetNames: Map<EntityId, string>;
 }
+
+// --- Local pure utilities (avoid engine import) ---
+
+function distance(x1: number, y1: number, x2: number, y2: number): number {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+interface ModeCost {
+  apCost: number;
+  speedMultiplier: number;
+  staminaCost: number;
+}
+
+function getModeCost(mode: string): ModeCost {
+  switch (mode) {
+    case 'hold':
+      return { apCost: 0, speedMultiplier: 0, staminaCost: 0 };
+    case 'walk':
+      return { apCost: 1, speedMultiplier: 0.25, staminaCost: 0 };
+    case 'advance':
+      return { apCost: 2, speedMultiplier: 0.5, staminaCost: 0 };
+    case 'run':
+      return { apCost: 4, speedMultiplier: 0.75, staminaCost: 1 };
+    case 'sprint':
+      return { apCost: Infinity, speedMultiplier: 1.0, staminaCost: 3 };
+    default:
+      return { apCost: 1, speedMultiplier: 0.25, staminaCost: 0 };
+  }
+}
+
+// --- Formatters ---
 
 function formatCondition(condition?: CommandCondition): string | undefined {
   if (!condition) return undefined;
@@ -49,9 +79,9 @@ function formatCondition(condition?: CommandCondition): string | undefined {
 }
 
 function formatMoveCommand(cmd: MoveCommand, index: number, fromX: number, fromY: number): FormattedCommand {
-  const distance = MovementSystem.calculateDistance(fromX, fromY, cmd.targetX, cmd.targetY);
+  const dist = distance(fromX, fromY, cmd.targetX, cmd.targetY);
   const modeName = cmd.mode.charAt(0).toUpperCase() + cmd.mode.slice(1);
-  const modeCost = MovementSystem.getMovementModeCost(cmd.mode);
+  const modeCost = getModeCost(cmd.mode);
 
   let tooltip = `${modeName} movement\n`;
   tooltip += `Base cost: ${modeCost.apCost === Infinity ? 'all AP' : modeCost.apCost + ' AP'}\n`;
@@ -64,7 +94,7 @@ function formatMoveCommand(cmd: MoveCommand, index: number, fromX: number, fromY
   return {
     index,
     title: `Move (${cmd.mode})`,
-    detail: `→ ${distance.toFixed(1)}m`,
+    detail: `→ ${dist.toFixed(1)}m`,
     apCost: cmd.apCost,
     priority: cmd.priority,
     tooltip,
@@ -73,27 +103,27 @@ function formatMoveCommand(cmd: MoveCommand, index: number, fromX: number, fromY
 }
 
 function formatAttackCommand(
-  world: WorldImpl,
-  entityId: EntityId,
   cmd: AttackCommand,
-  index: number
+  index: number,
+  targetName: string,
+  weaponName?: string,
+  weaponDamage?: { dice: number; sides: number; bonus: number }
 ): FormattedCommand {
-  const targetName = getEntityDisplayName(world, cmd.targetId);
-  const weapon = world.getComponent<WeaponComponent>(entityId, 'weapon');
-
   let tooltip = `${cmd.attackType.charAt(0).toUpperCase() + cmd.attackType.slice(1)} attack\n`;
   tooltip += `Target: ${targetName}\n`;
   tooltip += `AP cost: ${cmd.apCost}`;
-  if (weapon) {
-    tooltip += `\nWeapon: ${weapon.name}`;
-    tooltip += `\nDamage: ${weapon.damage.dice}d${weapon.damage.sides}+${weapon.damage.bonus}`;
+  if (weaponName) {
+    tooltip += `\nWeapon: ${weaponName}`;
+  }
+  if (weaponDamage) {
+    tooltip += `\nDamage: ${weaponDamage.dice}d${weaponDamage.sides}+${weaponDamage.bonus}`;
   }
   tooltip += `\nPriority: ${cmd.priority} (lower = faster)`;
 
   return {
     index,
     title: `Attack ${targetName}`,
-    detail: `→ ${cmd.attackType}${weapon ? ', ' + weapon.name : ''}`,
+    detail: `→ ${cmd.attackType}${weaponName ? ', ' + weaponName : ''}`,
     apCost: cmd.apCost,
     priority: cmd.priority,
     tooltip,
@@ -144,23 +174,19 @@ function formatOverwatchCommand(cmd: OverwatchCommand, index: number): Formatted
   };
 }
 
-export function formatQueuedCommands(
-  world: WorldImpl,
-  entityId: EntityId
-): FormattedCommand[] {
-  const queue = world.getComponent<CommandQueueComponent>(entityId, 'commandQueue');
-  const pos = world.getComponent<PositionComponent>(entityId, 'position');
+export function formatQueuedCommands(input: CommandFormatterInput): FormattedCommand[] {
+  const { commands, position, weaponName, weaponDamage, targetNames } = input;
 
-  if (!queue?.commands.length || !pos) return [];
+  if (!commands.length) return [];
 
   // Sort by priority to show execution order (lower = faster = executes first)
-  const sortedCommands = [...queue.commands].sort((a, b) => a.priority - b.priority);
+  const sortedCommands = [...commands].sort((a, b) => a.priority - b.priority);
 
   // First pass: calculate positions after all moves (in original order for position tracking)
   const movePositions = new Map<UnitCommand, { fromX: number; fromY: number }>();
-  let trackX = pos.x;
-  let trackY = pos.y;
-  for (const cmd of queue.commands) {
+  let trackX = position.x;
+  let trackY = position.y;
+  for (const cmd of commands) {
     if (cmd.type === 'move') {
       movePositions.set(cmd, { fromX: trackX, fromY: trackY });
       const moveCmd = cmd as MoveCommand;
@@ -177,12 +203,14 @@ export function formatQueuedCommands(
     switch (cmd.type) {
       case 'move': {
         const moveCmd = cmd as MoveCommand;
-        const positions = movePositions.get(cmd) ?? { fromX: pos.x, fromY: pos.y };
+        const positions = movePositions.get(cmd) ?? { fromX: position.x, fromY: position.y };
         formatted.push(formatMoveCommand(moveCmd, i + 1, positions.fromX, positions.fromY));
         break;
       }
       case 'attack': {
-        formatted.push(formatAttackCommand(world, entityId, cmd as AttackCommand, i + 1));
+        const attackCmd = cmd as AttackCommand;
+        const name = targetNames.get(attackCmd.targetId) ?? 'Unknown';
+        formatted.push(formatAttackCommand(attackCmd, i + 1, name, weaponName, weaponDamage));
         break;
       }
       case 'defend': {
