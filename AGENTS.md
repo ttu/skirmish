@@ -57,7 +57,13 @@ src/
 │   ├── Obstacle.ts                  # Obstacle meshes
 │   └── UnitMeshBuilder.ts           # Unit mesh construction
 ├── game/                            # Game loop & interaction
-│   ├── TurnBasedGame.ts             # Turn-based game loop
+│   ├── TurnBasedGame.ts             # Thin coordinator (~360 lines)
+│   ├── GameContext.ts               # Shared interface for modules
+│   ├── CommandBuilder.ts            # Input handling & command queuing
+│   ├── CommandPreviewRenderer.ts    # 3D command preview overlays
+│   ├── MovementAnimator.ts          # Movement animation playback
+│   ├── SceneManager.ts              # Entity meshes, terrain, selection
+│   ├── UIManager.ts                 # DOM UI panels, combat events
 │   └── selection.ts                 # Unit selection logic
 ├── data/
 │   └── scenarios.ts                 # Battle scenario definitions
@@ -115,7 +121,10 @@ tests/
 | Wound Effects    | `engine/systems/WoundEffects*`   | Wound penalties and status effects             |
 | Stamina          | `engine/systems/StaminaSystem*`  | Stamina consumption and recovery               |
 | Ammo             | `engine/systems/AmmoSystem.ts`   | Ammunition tracking for ranged units           |
-| Game Loop        | `game/TurnBasedGame.ts`          | Turn-based game loop, rendering, UI            |
+| Game Coordinator | `game/TurnBasedGame.ts`          | Thin coordinator wiring 5 modules              |
+| Command Builder  | `game/CommandBuilder.ts`         | User input → command queue                     |
+| Scene Manager    | `game/SceneManager.ts`           | Entity meshes, terrain, selection rings         |
+| UI Manager       | `game/UIManager.ts`              | DOM panels, combat log, floating text          |
 | Scenarios        | `data/scenarios.ts`              | Battle setups with units, obstacles, map size  |
 | Unit Templates   | `engine/data/UnitTemplates.ts`   | Unit type stats and definitions                |
 
