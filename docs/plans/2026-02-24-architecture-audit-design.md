@@ -107,6 +107,6 @@ No file imports both. No confusion. No changes needed.
 | 3 | ~~Extract UI query facade (UnitInfoProvider)~~ | ~~Decouples 3 UI files from ECS~~ | ~~Medium~~ | **DONE** |
 | 4 | ~~Move charge-detection out of CombatStatusHelpers~~ | ~~Eliminates duplicated engine logic~~ | ~~Medium~~ | **DONE** (moved to `game/CombatStatusQuery.ts`) |
 | 5 | Geometry/material caching | Performance + memory | Medium |
-| 6 | Delete dead code in Obstacle.ts | Code hygiene | Low |
+| 6 | ~~Delete dead code in Obstacle.ts~~ | ~~Code hygiene~~ | ~~Low~~ | **DONE** |
 | 7 | ~~Decompose TurnBasedGame.ts~~ | ~~Maintainability~~ | ~~High~~ | **DONE** (2,745 → 366 lines, 5 modules) |
 | 8 | InstancedMesh for repeated elements | Draw call optimization | Medium |

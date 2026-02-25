@@ -32,7 +32,7 @@ export class Obstacle {
   public readonly isPassable: boolean;
   public readonly length: number;
   public mesh: THREE.Group;
-  private readonly obstacleScale: number;
+
 
   /** Flow animation time for river/brook */
   private flowTime = 0;
@@ -45,7 +45,6 @@ export class Obstacle {
     this.length = data.length ?? 4;
 
     const scale = data.scale ?? 1;
-    this.obstacleScale = scale;
     if (data.rotation) {
       this.mesh.rotation.y = data.rotation;
     }
@@ -656,75 +655,4 @@ export class Obstacle {
     }
   }
 
-  // ── Collision ──────────────────────────────────────────────────
-
-  collidesWithPoint(x: number, z: number, radius: number): boolean {
-    if (this.isPassable) return false;
-
-    // River — curved, use expanded AABB
-    if (this.type === "river") {
-      const halfWidth = 2.8 * this.obstacleScale;
-      const halfLength = (this.length / 2 + 0.2) * this.obstacleScale;
-      const cos = Math.cos(this.mesh.rotation.y);
-      const sin = Math.sin(this.mesh.rotation.y);
-      const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
-      const localZ = -sin * (x - this.position.x) + cos * (z - this.position.z);
-      return (
-        Math.abs(localX) < halfWidth + radius &&
-        Math.abs(localZ) < halfLength + radius
-      );
-    }
-
-    // Fence — rectangular AABB (same logic as stone wall)
-    if (this.type === "fence") {
-      const s = this.obstacleScale;
-      const halfLength = (this.length * s) / 2;
-      const halfWidth = 0.3 * s;
-      const cos = Math.cos(this.mesh.rotation.y);
-      const sin = Math.sin(this.mesh.rotation.y);
-      const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
-      const localZ = -sin * (x - this.position.x) + cos * (z - this.position.z);
-      return (
-        Math.abs(localX) < halfLength + radius &&
-        Math.abs(localZ) < halfWidth + radius
-      );
-    }
-
-    // Stone wall — rectangular AABB
-    if (this.type === "stone_wall") {
-      const s = this.obstacleScale;
-      const halfLength = (this.length * s) / 2;
-      const halfWidth = 0.4 * s;
-      const cos = Math.cos(this.mesh.rotation.y);
-      const sin = Math.sin(this.mesh.rotation.y);
-      const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
-      const localZ = -sin * (x - this.position.x) + cos * (z - this.position.z);
-      return (
-        Math.abs(localX) < halfLength + radius &&
-        Math.abs(localZ) < halfWidth + radius
-      );
-    }
-
-    // Circular collision for other obstacles
-    const dx = x - this.position.x;
-    const dz = z - this.position.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    return distance < this.collisionRadius + radius;
-  }
-
-  /** Returns speed multiplier for a unit at (x, z). Brook returns 0.5, everything else 1.0. */
-  getSpeedMultiplier(x: number, z: number, radius: number): number {
-    if (this.type !== "brook") return 1.0;
-    const s = this.obstacleScale;
-    const halfWidth = 1.2 * s;
-    const halfLength = (this.length / 2 + 0.5) * s;
-    const cos = Math.cos(this.mesh.rotation.y);
-    const sin = Math.sin(this.mesh.rotation.y);
-    const localX = cos * (x - this.position.x) + sin * (z - this.position.z);
-    const localZ = -sin * (x - this.position.x) + cos * (z - this.position.z);
-    if (Math.abs(localX) < halfWidth + radius && Math.abs(localZ) < halfLength + radius) {
-      return 0.5;
-    }
-    return 1.0;
-  }
 }
