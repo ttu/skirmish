@@ -1,6 +1,20 @@
 import * as THREE from "three";
 import { createPrintedMaterial } from "../utils/PrintedMaterial";
 
+// ── Geometry cache ──────────────────────────────────────────────
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+
+function cached(key: string, factory: () => THREE.BufferGeometry): THREE.BufferGeometry {
+  let geom = geometryCache.get(key);
+  if (!geom) { geom = factory(); geometryCache.set(key, geom); }
+  return geom;
+}
+
+export function disposeObstacleGeometries(): void {
+  geometryCache.forEach(g => g.dispose());
+  geometryCache.clear();
+}
+
 export type ObstacleType =
   | "tree"
   | "tree_oak"
@@ -125,85 +139,86 @@ export class Obstacle {
   // ── Tree variants ──────────────────────────────────────────────
 
   private createTreePine(scale: number): void {
+    const s = scale;
     // Trunk
-    const trunkGeometry = new THREE.CylinderGeometry(
-      0.15 * scale, 0.2 * scale, 1.2 * scale, 8,
-    );
-    const trunkMaterial = createPrintedMaterial({ color: 0x8b4513 });
-    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    trunk.position.y = 0.6 * scale;
+    const trunkGeometry = cached(`pine_trunk_${s}`, () =>
+      new THREE.CylinderGeometry(0.15 * s, 0.2 * s, 1.2 * s, 8));
+    const trunk = new THREE.Mesh(trunkGeometry, createPrintedMaterial({ color: 0x8b4513 }));
+    trunk.position.y = 0.6 * s;
     trunk.castShadow = true;
     this.mesh.add(trunk);
 
     // Foliage (cone shape)
-    const foliageGeometry = new THREE.ConeGeometry(0.8 * scale, 2 * scale, 8);
+    const foliageGeometry = cached(`pine_foliage1_${s}`, () =>
+      new THREE.ConeGeometry(0.8 * s, 2 * s, 8));
     const foliageMaterial = createPrintedMaterial({ color: 0x228b22 });
     const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
-    foliage.position.y = 2 * scale;
+    foliage.position.y = 2 * s;
     foliage.castShadow = true;
     this.mesh.add(foliage);
 
     // Second layer of foliage
-    const foliage2Geometry = new THREE.ConeGeometry(0.6 * scale, 1.5 * scale, 8);
+    const foliage2Geometry = cached(`pine_foliage2_${s}`, () =>
+      new THREE.ConeGeometry(0.6 * s, 1.5 * s, 8));
     const foliage2 = new THREE.Mesh(foliage2Geometry, foliageMaterial);
-    foliage2.position.y = 2.8 * scale;
+    foliage2.position.y = 2.8 * s;
     foliage2.castShadow = true;
     this.mesh.add(foliage2);
   }
 
   private createTreeOak(scale: number): void {
+    const s = scale;
     // Thick trunk
-    const trunkGeometry = new THREE.CylinderGeometry(
-      0.2 * scale, 0.25 * scale, 1.0 * scale, 8,
-    );
-    const trunkMaterial = createPrintedMaterial({ color: 0x6b4226 });
-    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    trunk.position.y = 0.5 * scale;
+    const trunkGeometry = cached(`oak_trunk_${s}`, () =>
+      new THREE.CylinderGeometry(0.2 * s, 0.25 * s, 1.0 * s, 8));
+    const trunk = new THREE.Mesh(trunkGeometry, createPrintedMaterial({ color: 0x6b4226 }));
+    trunk.position.y = 0.5 * s;
     trunk.castShadow = true;
     this.mesh.add(trunk);
 
     // Round canopy
-    const canopyGeometry = new THREE.SphereGeometry(1.0 * scale, 8, 6);
+    const canopyGeometry = cached(`oak_canopy1_${s}`, () =>
+      new THREE.SphereGeometry(1.0 * s, 8, 6));
     const canopyMaterial = createPrintedMaterial({ color: 0x2d5a1e });
     const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
-    canopy.position.y = 1.6 * scale;
+    canopy.position.y = 1.6 * s;
     canopy.scale.set(1, 0.7, 1);
     canopy.castShadow = true;
     this.mesh.add(canopy);
 
     // Smaller secondary canopy for asymmetry
-    const canopy2Geometry = new THREE.SphereGeometry(0.6 * scale, 8, 6);
+    const canopy2Geometry = cached(`oak_canopy2_${s}`, () =>
+      new THREE.SphereGeometry(0.6 * s, 8, 6));
     const canopy2 = new THREE.Mesh(canopy2Geometry, canopyMaterial);
-    canopy2.position.set(0.4 * scale, 1.9 * scale, 0.3 * scale);
+    canopy2.position.set(0.4 * s, 1.9 * s, 0.3 * s);
     canopy2.scale.set(1, 0.7, 1);
     canopy2.castShadow = true;
     this.mesh.add(canopy2);
   }
 
   private createTreeWillow(scale: number): void {
+    const s = scale;
     // Medium trunk
-    const trunkGeometry = new THREE.CylinderGeometry(
-      0.18 * scale, 0.22 * scale, 0.9 * scale, 8,
-    );
-    const trunkMaterial = createPrintedMaterial({ color: 0x7b6b3a });
-    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    trunk.position.y = 0.45 * scale;
+    const trunkGeometry = cached(`willow_trunk_${s}`, () =>
+      new THREE.CylinderGeometry(0.18 * s, 0.22 * s, 0.9 * s, 8));
+    const trunk = new THREE.Mesh(trunkGeometry, createPrintedMaterial({ color: 0x7b6b3a }));
+    trunk.position.y = 0.45 * s;
     trunk.castShadow = true;
     this.mesh.add(trunk);
 
     // Wide flat canopy
-    const canopyGeometry = new THREE.SphereGeometry(1.2 * scale, 8, 6);
-    const canopyMaterial = createPrintedMaterial({ color: 0x6b8e23 });
-    const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
-    canopy.position.y = 1.2 * scale;
+    const canopyGeometry = cached(`willow_canopy_${s}`, () =>
+      new THREE.SphereGeometry(1.2 * s, 8, 6));
+    const canopy = new THREE.Mesh(canopyGeometry, createPrintedMaterial({ color: 0x6b8e23 }));
+    canopy.position.y = 1.2 * s;
     canopy.scale.set(1, 0.5, 1);
     canopy.castShadow = true;
     this.mesh.add(canopy);
 
     // Drooping branches (InstancedMesh — 6 identical cylinders)
-    const branchMaterial = createPrintedMaterial({ color: 0x556b2f });
-    const branchGeometry = new THREE.CylinderGeometry(0.02 * scale, 0.02 * scale, 0.8 * scale, 4);
-    const branches = new THREE.InstancedMesh(branchGeometry, branchMaterial, 6);
+    const branchGeometry = cached(`willow_branch_${s}`, () =>
+      new THREE.CylinderGeometry(0.02 * s, 0.02 * s, 0.8 * s, 4));
+    const branches = new THREE.InstancedMesh(branchGeometry, createPrintedMaterial({ color: 0x556b2f }), 6);
     branches.castShadow = true;
     const branchMatrix = new THREE.Matrix4();
     for (let i = 0; i < 6; i++) {
@@ -221,121 +236,128 @@ export class Obstacle {
   // ── House variants ─────────────────────────────────────────────
 
   private createHouseStone(scale: number): void {
+    const s = scale;
     // Grey stone base
-    const baseGeometry = new THREE.BoxGeometry(2 * scale, 1.5 * scale, 2 * scale);
-    const baseMaterial = createPrintedMaterial({ color: 0xa0a0a0 });
-    const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.y = 0.75 * scale;
+    const baseGeometry = cached(`hstone_base_${s}`, () =>
+      new THREE.BoxGeometry(2 * s, 1.5 * s, 2 * s));
+    const base = new THREE.Mesh(baseGeometry, createPrintedMaterial({ color: 0xa0a0a0 }));
+    base.position.y = 0.75 * s;
     base.castShadow = true;
     base.receiveShadow = true;
     this.mesh.add(base);
 
     // Slate roof
-    const roofGeometry = new THREE.ConeGeometry(1.6 * scale, 1 * scale, 4);
-    const roofMaterial = createPrintedMaterial({ color: 0x505050 });
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = 2 * scale;
+    const roofGeometry = cached(`hstone_roof_${s}`, () =>
+      new THREE.ConeGeometry(1.6 * s, 1 * s, 4));
+    const roof = new THREE.Mesh(roofGeometry, createPrintedMaterial({ color: 0x505050 }));
+    roof.position.y = 2 * s;
     roof.rotation.y = Math.PI / 4;
     roof.castShadow = true;
     this.mesh.add(roof);
 
     // Door
-    const doorGeometry = new THREE.BoxGeometry(0.4 * scale, 0.8 * scale, 0.1 * scale);
-    const doorMaterial = createPrintedMaterial({ color: 0x654321 });
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 0.4 * scale, 1.01 * scale);
+    const doorGeometry = cached(`hstone_door_${s}`, () =>
+      new THREE.BoxGeometry(0.4 * s, 0.8 * s, 0.1 * s));
+    const door = new THREE.Mesh(doorGeometry, createPrintedMaterial({ color: 0x654321 }));
+    door.position.set(0, 0.4 * s, 1.01 * s);
     this.mesh.add(door);
 
     // Chimney
-    const chimneyGeometry = new THREE.BoxGeometry(0.3 * scale, 0.8 * scale, 0.3 * scale);
-    const chimneyMaterial = createPrintedMaterial({ color: 0x696969 });
-    const chimney = new THREE.Mesh(chimneyGeometry, chimneyMaterial);
-    chimney.position.set(0.6 * scale, 2.4 * scale, -0.5 * scale);
+    const chimneyGeometry = cached(`hstone_chimney_${s}`, () =>
+      new THREE.BoxGeometry(0.3 * s, 0.8 * s, 0.3 * s));
+    const chimney = new THREE.Mesh(chimneyGeometry, createPrintedMaterial({ color: 0x696969 }));
+    chimney.position.set(0.6 * s, 2.4 * s, -0.5 * s);
     chimney.castShadow = true;
     this.mesh.add(chimney);
   }
 
   private createHouseCottage(scale: number): void {
+    const s = scale;
     // Small tan base
-    const baseGeometry = new THREE.BoxGeometry(1.4 * scale, 1.0 * scale, 1.4 * scale);
-    const baseMaterial = createPrintedMaterial({ color: 0xd2b48c });
-    const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.y = 0.5 * scale;
+    const baseGeometry = cached(`hcottage_base_${s}`, () =>
+      new THREE.BoxGeometry(1.4 * s, 1.0 * s, 1.4 * s));
+    const base = new THREE.Mesh(baseGeometry, createPrintedMaterial({ color: 0xd2b48c }));
+    base.position.y = 0.5 * s;
     base.castShadow = true;
     base.receiveShadow = true;
     this.mesh.add(base);
 
     // Thatched roof
-    const roofGeometry = new THREE.ConeGeometry(1.2 * scale, 0.8 * scale, 4);
-    const roofMaterial = createPrintedMaterial({ color: 0xbdb76b });
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = 1.4 * scale;
+    const roofGeometry = cached(`hcottage_roof_${s}`, () =>
+      new THREE.ConeGeometry(1.2 * s, 0.8 * s, 4));
+    const roof = new THREE.Mesh(roofGeometry, createPrintedMaterial({ color: 0xbdb76b }));
+    roof.position.y = 1.4 * s;
     roof.rotation.y = Math.PI / 4;
     roof.castShadow = true;
     this.mesh.add(roof);
 
     // Small door
-    const doorGeometry = new THREE.BoxGeometry(0.3 * scale, 0.6 * scale, 0.1 * scale);
-    const doorMaterial = createPrintedMaterial({ color: 0x654321 });
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 0.3 * scale, 0.71 * scale);
+    const doorGeometry = cached(`hcottage_door_${s}`, () =>
+      new THREE.BoxGeometry(0.3 * s, 0.6 * s, 0.1 * s));
+    const door = new THREE.Mesh(doorGeometry, createPrintedMaterial({ color: 0x654321 }));
+    door.position.set(0, 0.3 * s, 0.71 * s);
     this.mesh.add(door);
   }
 
   private createHouseHall(scale: number): void {
+    const s = scale;
     // Large cream base
-    const baseGeometry = new THREE.BoxGeometry(3.0 * scale, 2.0 * scale, 2.5 * scale);
-    const baseMaterial = createPrintedMaterial({ color: 0xfff8dc });
-    const base = new THREE.Mesh(baseGeometry, baseMaterial);
-    base.position.y = 1.0 * scale;
+    const baseGeometry = cached(`hhall_base_${s}`, () =>
+      new THREE.BoxGeometry(3.0 * s, 2.0 * s, 2.5 * s));
+    const base = new THREE.Mesh(baseGeometry, createPrintedMaterial({ color: 0xfff8dc }));
+    base.position.y = 1.0 * s;
     base.castShadow = true;
     base.receiveShadow = true;
     this.mesh.add(base);
 
     // Timber beams on front face
     const beamMaterial = createPrintedMaterial({ color: 0x654321 });
+    const beamGeometry = cached(`hhall_beam_${s}`, () =>
+      new THREE.BoxGeometry(0.08 * s, 1.8 * s, 0.08 * s));
     for (let i = 0; i < 4; i++) {
-      const beamGeometry = new THREE.BoxGeometry(0.08 * scale, 1.8 * scale, 0.08 * scale);
       const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-      const xOffset = -1.0 * scale + i * 0.67 * scale;
-      beam.position.set(xOffset, 1.0 * scale, 1.26 * scale);
+      const xOffset = -1.0 * s + i * 0.67 * s;
+      beam.position.set(xOffset, 1.0 * s, 1.26 * s);
       this.mesh.add(beam);
     }
 
     // Steep red roof
-    const roofGeometry = new THREE.ConeGeometry(2.2 * scale, 1.5 * scale, 4);
-    const roofMaterial = createPrintedMaterial({ color: 0x8b0000 });
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = 2.75 * scale;
+    const roofGeometry = cached(`hhall_roof_${s}`, () =>
+      new THREE.ConeGeometry(2.2 * s, 1.5 * s, 4));
+    const roof = new THREE.Mesh(roofGeometry, createPrintedMaterial({ color: 0x8b0000 }));
+    roof.position.y = 2.75 * s;
     roof.rotation.y = Math.PI / 4;
     roof.castShadow = true;
     this.mesh.add(roof);
 
     // Double door
-    const doorGeometry = new THREE.BoxGeometry(0.6 * scale, 1.0 * scale, 0.1 * scale);
-    const doorMaterial = createPrintedMaterial({ color: 0x654321 });
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 0.5 * scale, 1.26 * scale);
+    const doorGeometry = cached(`hhall_door_${s}`, () =>
+      new THREE.BoxGeometry(0.6 * s, 1.0 * s, 0.1 * s));
+    const door = new THREE.Mesh(doorGeometry, beamMaterial);
+    door.position.set(0, 0.5 * s, 1.26 * s);
     this.mesh.add(door);
   }
 
   // ── Other obstacles ────────────────────────────────────────────
 
   private createRock(scale: number): void {
+    const s = scale;
     // Main rock
-    const rockGeometry = new THREE.DodecahedronGeometry(0.7 * scale, 0);
+    const rockGeometry = cached(`rock_main_${s}`, () =>
+      new THREE.DodecahedronGeometry(0.7 * s, 0));
     const rockMaterial = createPrintedMaterial({ color: 0x808080 });
     const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-    rock.position.y = 0.4 * scale;
+    rock.position.y = 0.4 * s;
     rock.scale.set(1, 0.7, 1);
     rock.rotation.y = Math.random() * Math.PI;
     rock.castShadow = true;
     this.mesh.add(rock);
 
     // Smaller rock
-    const rock2Geometry = new THREE.DodecahedronGeometry(0.4 * scale, 0);
+    const rock2Geometry = cached(`rock_small_${s}`, () =>
+      new THREE.DodecahedronGeometry(0.4 * s, 0));
     const rock2 = new THREE.Mesh(rock2Geometry, rockMaterial);
-    rock2.position.set(0.5 * scale, 0.2 * scale, 0.3 * scale);
+    rock2.position.set(0.5 * s, 0.2 * s, 0.3 * s);
     rock2.scale.set(1, 0.6, 1);
     rock2.castShadow = true;
     this.mesh.add(rock2);
@@ -567,7 +589,8 @@ export class Obstacle {
 
     // Planks (InstancedMesh — ~20 identical boxes)
     const plankCount = Math.ceil(width / plankWidth);
-    const plankGeometry = new THREE.BoxGeometry(plankWidth * 0.9, plankThickness, length);
+    const plankGeometry = cached(`bridge_plank_${s}`, () =>
+      new THREE.BoxGeometry(plankWidth * 0.9, plankThickness, length));
     const planks = new THREE.InstancedMesh(plankGeometry, woodMaterial, plankCount);
     planks.castShadow = true;
     planks.receiveShadow = true;
@@ -580,9 +603,8 @@ export class Obstacle {
     this.mesh.add(planks);
 
     const beamMaterial = createPrintedMaterial({ color: 0x6b4a0a });
-    const sideBeamGeometry = new THREE.BoxGeometry(
-      0.15 * s, 0.12 * s, length + 0.2 * s,
-    );
+    const sideBeamGeometry = cached(`bridge_beam_${s}`, () =>
+      new THREE.BoxGeometry(0.15 * s, 0.12 * s, length + 0.2 * s));
     const leftBeam = new THREE.Mesh(sideBeamGeometry, beamMaterial);
     leftBeam.position.set(-width / 2 - 0.2 * s, 0.14, 0);
     this.mesh.add(leftBeam);
@@ -614,7 +636,8 @@ export class Obstacle {
     };
 
     // Posts (2 InstancedMeshes — split by material, per-instance scale.y)
-    const postGeometry = new THREE.BoxGeometry(postWidth, postHeight, postWidth);
+    const postGeometry = cached(`fence_post_${s}`, () =>
+      new THREE.BoxGeometry(postWidth, postHeight, postWidth));
     const lightPosts: { x: number; y: number; sy: number }[] = [];
     const darkPosts: { x: number; y: number; sy: number }[] = [];
     for (let i = 0; i < postCount; i++) {
@@ -645,7 +668,8 @@ export class Obstacle {
 
     // Rails connecting posts (InstancedMesh — 2 per section)
     const railCount = (postCount - 1) * 2;
-    const railGeometry = new THREE.BoxGeometry(actualSpacing, railHeight, postWidth * 0.8);
+    const railGeometry = cached(`fence_rail_${s}_${this.length}`, () =>
+      new THREE.BoxGeometry(actualSpacing, railHeight, postWidth * 0.8));
     const rails = new THREE.InstancedMesh(railGeometry, woodMaterial, railCount);
     rails.castShadow = true;
     const railMatrix = new THREE.Matrix4();

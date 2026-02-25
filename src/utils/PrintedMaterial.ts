@@ -1,9 +1,14 @@
 import * as THREE from "three";
 
-/** Creates a matte plastic material with FDM-style layer lines for a 3D-printed look. */
+const materialCache = new Map<number, THREE.MeshStandardMaterial>();
+
+/** Creates (or returns cached) matte plastic material with FDM-style layer lines for a 3D-printed look. */
 export function createPrintedMaterial(options: {
   color: number;
 }): THREE.MeshStandardMaterial {
+  const existing = materialCache.get(options.color);
+  if (existing) return existing;
+
   const material = new THREE.MeshStandardMaterial({
     color: options.color,
     roughness: 0.95,
@@ -33,5 +38,11 @@ export function createPrintedMaterial(options: {
       `
     );
   };
+  materialCache.set(options.color, material);
   return material;
+}
+
+export function disposePrintedMaterials(): void {
+  materialCache.forEach(m => m.dispose());
+  materialCache.clear();
 }

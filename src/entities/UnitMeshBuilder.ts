@@ -2,6 +2,20 @@ import * as THREE from "three";
 import { UnitType } from "../types";
 import { createPrintedMaterial } from "../utils/PrintedMaterial";
 
+// ── Geometry cache ──────────────────────────────────────────────
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+
+function cached(key: string, factory: () => THREE.BufferGeometry): THREE.BufferGeometry {
+  let geom = geometryCache.get(key);
+  if (!geom) { geom = factory(); geometryCache.set(key, geom); }
+  return geom;
+}
+
+export function disposeUnitGeometries(): void {
+  geometryCache.forEach(g => g.dispose());
+  geometryCache.clear();
+}
+
 /** Create a coin/token marker for a unit with raised rim and unit-specific icon. */
 export function buildUnitMesh(
   type: UnitType,
@@ -25,22 +39,14 @@ export function buildUnitMesh(
   const rimColor = darkenColor(color, 0.6);
   const iconColor = darkenColor(color, 0.3);
 
-  const coinGeometry = new THREE.CylinderGeometry(
-    coinRadius,
-    coinRadius,
-    coinHeight,
-    32
-  );
+  const coinGeometry = cached(`coin_${s}`, () =>
+    new THREE.CylinderGeometry(coinRadius, coinRadius, coinHeight, 32));
   const coin = new THREE.Mesh(coinGeometry, mat(color));
   coin.position.y = coinHeight / 2;
   add(coin);
 
-  const rimGeometry = new THREE.TorusGeometry(
-    coinRadius * 0.85,
-    rimHeight,
-    8,
-    32
-  );
+  const rimGeometry = cached(`rim_${s}`, () =>
+    new THREE.TorusGeometry(coinRadius * 0.85, rimHeight, 8, 32));
   const rim = new THREE.Mesh(rimGeometry, mat(rimColor));
   rim.rotation.x = -Math.PI / 2;
   rim.position.y = coinHeight + rimHeight / 2;
@@ -86,19 +92,19 @@ function createUnitIcon(
       const bladeLength = size * 0.8;
       const bladeWidth = size * 0.12;
       const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(bladeWidth, height, bladeLength),
+        cached(`warrior_blade_${size}`, () => new THREE.BoxGeometry(bladeWidth, height, bladeLength)),
         mat(color)
       );
       blade.position.z = bladeLength * 0.1;
       group.add(blade);
       const guard = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.5, height, bladeWidth),
+        cached(`warrior_guard_${size}`, () => new THREE.BoxGeometry(size * 0.5, height, bladeWidth)),
         mat(color)
       );
       guard.position.z = -bladeLength * 0.3;
       group.add(guard);
       const handle = new THREE.Mesh(
-        new THREE.BoxGeometry(bladeWidth * 0.8, height, size * 0.25),
+        cached(`warrior_handle_${size}`, () => new THREE.BoxGeometry(bladeWidth * 0.8, height, size * 0.25)),
         mat(color)
       );
       handle.position.z = -bladeLength * 0.55;
@@ -108,7 +114,7 @@ function createUnitIcon(
     case "archer": {
       const bowRadius = size * 0.4;
       const bow = new THREE.Mesh(
-        new THREE.TorusGeometry(bowRadius, size * 0.05, 6, 12, Math.PI),
+        cached(`archer_bow_${size}`, () => new THREE.TorusGeometry(bowRadius, size * 0.05, 6, 12, Math.PI)),
         mat(color)
       );
       bow.rotation.z = Math.PI / 2;
@@ -116,19 +122,19 @@ function createUnitIcon(
       bow.position.x = -size * 0.1;
       group.add(bow);
       const string = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.02, height, bowRadius * 2),
+        cached(`archer_string_${size}`, () => new THREE.BoxGeometry(size * 0.02, height, bowRadius * 2)),
         mat(color)
       );
       string.position.x = -size * 0.1;
       group.add(string);
       const arrowShaft = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.03, height, size * 0.7),
+        cached(`archer_shaft_${size}`, () => new THREE.BoxGeometry(size * 0.03, height, size * 0.7)),
         mat(color)
       );
       arrowShaft.position.x = size * 0.15;
       group.add(arrowShaft);
       const arrowHead = new THREE.Mesh(
-        new THREE.ConeGeometry(size * 0.08, size * 0.15, 3),
+        cached(`archer_head_${size}`, () => new THREE.ConeGeometry(size * 0.08, size * 0.15, 3)),
         mat(color)
       );
       arrowHead.rotation.x = -Math.PI / 2;
@@ -139,23 +145,18 @@ function createUnitIcon(
     case "knight": {
       const shieldSize = size * 0.7;
       const shield = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-          shieldSize * 0.4,
-          shieldSize * 0.6,
-          height,
-          6
-        ),
+        cached(`knight_shield_${size}`, () => new THREE.CylinderGeometry(shieldSize * 0.4, shieldSize * 0.6, height, 6)),
         mat(color)
       );
       group.add(shield);
       const crossV = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.08, height * 1.5, shieldSize * 0.8),
+        cached(`knight_crossV_${size}`, () => new THREE.BoxGeometry(size * 0.08, height * 1.5, shieldSize * 0.8)),
         mat(darkenColor(color, 0.5))
       );
       crossV.position.y = height * 0.25;
       group.add(crossV);
       const crossH = new THREE.Mesh(
-        new THREE.BoxGeometry(shieldSize * 0.6, height * 1.5, size * 0.08),
+        cached(`knight_crossH_${size}`, () => new THREE.BoxGeometry(shieldSize * 0.6, height * 1.5, size * 0.08)),
         mat(darkenColor(color, 0.5))
       );
       crossH.position.y = height * 0.25;
@@ -167,12 +168,12 @@ function createUnitIcon(
       const crossSize = size * 0.7;
       const barWidth = crossSize * 0.3;
       const vBar = new THREE.Mesh(
-        new THREE.BoxGeometry(barWidth, height, crossSize),
+        cached(`healer_vbar_${size}`, () => new THREE.BoxGeometry(barWidth, height, crossSize)),
         mat(color)
       );
       group.add(vBar);
       const hBar = new THREE.Mesh(
-        new THREE.BoxGeometry(crossSize, height, barWidth),
+        cached(`healer_hbar_${size}`, () => new THREE.BoxGeometry(crossSize, height, barWidth)),
         mat(color)
       );
       group.add(hBar);
@@ -181,14 +182,14 @@ function createUnitIcon(
     case "goblin": {
       const daggerLength = size * 0.8;
       const blade = new THREE.Mesh(
-        new THREE.ConeGeometry(size * 0.15, daggerLength * 0.7, 3),
+        cached(`goblin_blade_${size}`, () => new THREE.ConeGeometry(size * 0.15, daggerLength * 0.7, 3)),
         mat(color)
       );
       blade.rotation.x = -Math.PI / 2;
       blade.position.z = daggerLength * 0.2;
       group.add(blade);
       const handle = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.12, height, daggerLength * 0.3),
+        cached(`goblin_handle_${size}`, () => new THREE.BoxGeometry(size * 0.12, height, daggerLength * 0.3)),
         mat(color)
       );
       handle.position.z = -daggerLength * 0.25;
@@ -198,21 +199,12 @@ function createUnitIcon(
     case "orc_warrior": {
       const axeSize = size * 0.7;
       const handle = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.08, height, axeSize),
+        cached(`orc_w_handle_${size}`, () => new THREE.BoxGeometry(size * 0.08, height, axeSize)),
         mat(color)
       );
       group.add(handle);
       const axeHead = new THREE.Mesh(
-        new THREE.CylinderGeometry(
-          axeSize * 0.4,
-          axeSize * 0.4,
-          height,
-          16,
-          1,
-          false,
-          0,
-          Math.PI
-        ),
+        cached(`orc_w_axe_${size}`, () => new THREE.CylinderGeometry(axeSize * 0.4, axeSize * 0.4, height, 16, 1, false, 0, Math.PI)),
         mat(color)
       );
       axeHead.rotation.z = Math.PI / 2;
@@ -225,14 +217,14 @@ function createUnitIcon(
     case "orc_archer": {
       const bowRadius = size * 0.35;
       const bow = new THREE.Mesh(
-        new THREE.TorusGeometry(bowRadius, size * 0.08, 6, 12, Math.PI),
+        cached(`orc_a_bow_${size}`, () => new THREE.TorusGeometry(bowRadius, size * 0.08, 6, 12, Math.PI)),
         mat(color)
       );
       bow.rotation.z = Math.PI / 2;
       bow.rotation.x = -Math.PI / 2;
       group.add(bow);
       const string = new THREE.Mesh(
-        new THREE.BoxGeometry(size * 0.03, height, bowRadius * 2),
+        cached(`orc_a_string_${size}`, () => new THREE.BoxGeometry(size * 0.03, height, bowRadius * 2)),
         mat(color)
       );
       group.add(string);
@@ -241,14 +233,14 @@ function createUnitIcon(
     case "troll": {
       const clubLength = size * 0.9;
       const handle = new THREE.Mesh(
-        new THREE.CylinderGeometry(size * 0.06, size * 0.1, clubLength * 0.5, 8),
+        cached(`troll_handle_${size}`, () => new THREE.CylinderGeometry(size * 0.06, size * 0.1, clubLength * 0.5, 8)),
         mat(color)
       );
       handle.rotation.x = -Math.PI / 2;
       handle.position.z = -clubLength * 0.2;
       group.add(handle);
       const head = new THREE.Mesh(
-        new THREE.SphereGeometry(size * 0.25, 8, 8),
+        cached(`troll_head_${size}`, () => new THREE.SphereGeometry(size * 0.25, 8, 8)),
         mat(color)
       );
       head.position.z = clubLength * 0.25;
@@ -259,7 +251,7 @@ function createUnitIcon(
     }
     default: {
       const marker = new THREE.Mesh(
-        new THREE.CylinderGeometry(size * 0.4, size * 0.4, height, 16),
+        cached(`default_${size}`, () => new THREE.CylinderGeometry(size * 0.4, size * 0.4, height, 16)),
         mat(color)
       );
       group.add(marker);
