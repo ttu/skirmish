@@ -102,8 +102,8 @@ No file imports both. No confusion. No changes needed.
 
 | Priority | Task | Impact | Effort |
 |----------|------|--------|--------|
-| 1 | Fix `clearScenario()` disposal leak | Prevents memory leaks on replay | Low |
-| 2 | Add `dispose()` to Obstacle + UnitMeshBuilder | Complete resource cleanup | Low |
+| 1 | ~~Fix `clearScenario()` disposal leak~~ | ~~Prevents memory leaks on replay~~ | ~~Low~~ | **DONE** (Obstacle.dispose + SceneManager.clearAll) |
+| 2 | ~~Add `dispose()` to Obstacle + UnitMeshBuilder~~ | ~~Complete resource cleanup~~ | ~~Low~~ | **DONE** (covered by item 1) |
 | 3 | ~~Extract UI query facade (UnitInfoProvider)~~ | ~~Decouples 3 UI files from ECS~~ | ~~Medium~~ | **DONE** |
 | 4 | ~~Move charge-detection out of CombatStatusHelpers~~ | ~~Eliminates duplicated engine logic~~ | ~~Medium~~ | **DONE** (moved to `game/CombatStatusQuery.ts`) |
 | 5 | ~~Geometry/material caching~~ | ~~Performance + memory~~ | ~~Medium~~ | **DONE** (material cache by color, geometry cache per type+scale) |

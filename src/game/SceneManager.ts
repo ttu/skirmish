@@ -242,7 +242,22 @@ export class SceneManager {
       this.ctx.scene.remove(mesh);
     }
     this.entityMeshes.clear();
+
     if (this.terrainGroup) {
+      // Dispose obstacle uncached resources (ShapeGeometries, ShaderMaterials, random-sized stones/pebbles)
+      for (const obstacle of this.terrainObstacles) {
+        obstacle.dispose();
+      }
+      // Dispose ground plane + GridHelper (unique per scenario, not cached)
+      for (const child of this.terrainGroup.children) {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          (child.material as THREE.Material).dispose();
+        } else if (child instanceof THREE.GridHelper) {
+          child.geometry.dispose();
+          (child.material as THREE.Material).dispose();
+        }
+      }
       this.ctx.scene.remove(this.terrainGroup);
       this.terrainGroup = null;
     }

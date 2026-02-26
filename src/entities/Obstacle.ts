@@ -15,6 +15,13 @@ export function disposeObstacleGeometries(): void {
   geometryCache.clear();
 }
 
+function isGeometryCached(geom: THREE.BufferGeometry): boolean {
+  for (const g of geometryCache.values()) {
+    if (g === geom) return true;
+  }
+  return false;
+}
+
 export type ObstacleType =
   | "tree"
   | "tree_oak"
@@ -681,6 +688,24 @@ export class Obstacle {
       rails.setMatrixAt(i * 2 + 1, railMatrix);
     }
     this.mesh.add(rails);
+  }
+
+  // ── Disposal ───────────────────────────────────────────────────
+
+  dispose(): void {
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh || child instanceof THREE.InstancedMesh) {
+        if (child.geometry && !isGeometryCached(child.geometry)) {
+          child.geometry.dispose();
+        }
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        for (const mat of materials) {
+          if (mat instanceof THREE.ShaderMaterial) {
+            mat.dispose();
+          }
+        }
+      }
+    });
   }
 
   // ── Update ─────────────────────────────────────────────────────
